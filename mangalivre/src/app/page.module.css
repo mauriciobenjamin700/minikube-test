@@ -26,6 +26,15 @@
   border-radius: 16px;
 }
 
+.formButtonContainer {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  align-items: center;
+  justify-content: center;
+  gap: 30px;
+}
+
 .formButton {
   width: 200px;
   height: 50px;

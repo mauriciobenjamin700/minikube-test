@@ -1,0 +1,29 @@
+volumes:
+  mangalivre-db:
+    driver: local
+
+services:
+
+  mangalivre-db:
+    build:
+      context: ./mangalivre/database/
+      dockerfile: Dockerfile
+    container_name: mangalivre-db
+    environment:
+      - POSTGRES_USER=mangalivre
+      - POSTGRES_PASSWORD=mangalivre
+      - POSTGRES_DB=mangalivre
+    ports:
+      - "5432:5432"
+    volumes:
+      - mangalivre-db:/var/lib/postgresql/data
+
+  mangalivre-app:
+    build:
+      context: ./mangalivre/
+      dockerfile: Dockerfile
+    container_name: mangalivre-app
+    ports:
+      - "3000:3000"
+    environment:
+      - DATABASE_URL=postgres://mangalivre:mangalivre@mangalivre-db:5432/mangalivre

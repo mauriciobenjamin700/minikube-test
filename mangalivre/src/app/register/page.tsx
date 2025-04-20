@@ -1,6 +1,7 @@
 import Form from "@/components/Form";
 import styles from "./page.module.css";
 import Button from "@/components/Button";
+import Link from "next/link";
 
 export default function RegisterPage() {
 
@@ -22,7 +23,7 @@ export default function RegisterPage() {
                 <br />
                 <Button type="submit">Registrar</Button>
                 <br />
-                <p>Já tem uma conta? <a className={styles.link} href="/">Entrar</a></p>
+                <p>Já tem uma conta? <Link className={styles.link} href="/">Entrar</Link></p>
             </Form>
         </main>
     )

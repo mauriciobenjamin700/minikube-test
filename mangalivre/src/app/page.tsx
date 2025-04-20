@@ -27,15 +27,17 @@ export default function Home() {
         <label htmlFor="password">Senha:</label>
         <input type="password" id="password" name="password" required />
         <br />
-        <Button
-          type="submit">
-          Entrar
-        </Button>
-        <Link href="/register">
-          <Button type="button">
-            Registrar
+        <div className={styles.formButtonContainer}>
+          <Button
+            type="submit">
+            Entrar
           </Button>
-        </Link>
+          <Link href="/register">
+            <Button type="button">
+              Registrar
+            </Button>
+          </Link>
+        </div>
         <br />
       </Form>
     </main >

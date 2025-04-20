@@ -12,8 +12,8 @@
     display: flex;
     flex-direction: column;
     align-self: center;
-    width: 500px;
-    height: 500px;
+    width: 800px;
+    height: 600px;
     align-items: center;
     justify-content: center;
     gap: 10px;
