@@ -1,45 +1,62 @@
+import { UnprocessableEntityError } from "@/core/errors";
+import UserService from "@/services/user";
+import { UserLogin, UserRegister } from "@/types/user"
+import { handleError } from "@/core/handlers";
+
 export async function GET(request: Request) {
+    try {
+        // Extrai os parâmetros da URL
+        const { searchParams } = new URL(request.url);
+        const email = searchParams.get("email");
+        const password = searchParams.get("password");
 
-    console.log("GET request received");
-    console.log(request);
-    console.log(request.url);
-
-    const users = [
-        {
-            id: "1",
-            name: "John Doe",
-            email: "joe.doe@gmai.com"
-        },
-        {
-            id: "2",
-            name: "Jane Doe",
-            email: "jane.doe@gmail.com"
+        // Valida os parâmetros obrigatórios
+        if (!email || !password) {
+            throw new UnprocessableEntityError("Required fields are missing, please send the email and password");
         }
-    ];
 
-    return new Response(JSON.stringify(users), {
-        status: 200,
-        headers: {
-            "Content-Type": "application/json"
-        }
-    });
+        const body: UserLogin = {
+            email,
+            password
+        };
+
+        const service = new UserService();
+
+        const user = await service.login(body);
+
+        return new Response(user.toJSON(), {
+            status: 200,
+            headers: {
+                "Content-Type": "application/json"
+            }
+        });
+
+    } catch (error: any) {
+        console.log("error: ", error);
+        return handleError(error);
+    }
 
 }
 
 export async function POST(request: Request) {
-    const body = await request.json();
+    try {
 
-    const { name } = body;
+        const body: UserRegister = await request.json();
 
-    const newUser = {
-        id: Date.now().toString(),
-        name
+        const service = new UserService();
+
+        const newUser = await service.register(body);
+
+
+        return new Response(newUser.toJSON(), {
+            status: 201,
+            headers: {
+                "Content-Type": "application/json"
+            }
+        });
+    } catch (error: any) {
+        console.log("error: ", error);
+        return handleError(error);
     }
 
-    return new Response(JSON.stringify(newUser), {
-        status: 201,
-        headers: {
-            "Content-Type": "application/json"
-        }
-    });
 }
