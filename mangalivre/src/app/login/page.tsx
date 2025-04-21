@@ -31,7 +31,6 @@ export default function Login() {
 
     if (response.ok) {
       const user = await response.json();
-      console.log("user: ", user);
       dispatch({ type: "user/login", payload: user });
       redirect("/"); // Redireciona para a página inicial após o login
     } else {

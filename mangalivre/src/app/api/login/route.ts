@@ -5,8 +5,6 @@ import { UserLogin } from "@/types/user";
 export async function POST(request: Request) {
     try {
 
-        console.log("RECEBI UMA REQUEST: ", request);
-
         const body: UserLogin = await request.json();
 
         const service = new UserService();

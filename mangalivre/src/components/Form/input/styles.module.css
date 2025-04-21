@@ -1,0 +1,41 @@
+.inputContainer {
+    position: relative;
+    margin-bottom: 1rem;
+}
+
+.label {
+    display: block;
+    margin-bottom: 0.5rem;
+}
+
+.input {
+    padding: 10px;
+    border-radius: 5px;
+    border: 1px solid var(--foreground);
+    width: 100%;
+    background-color: var(--background);
+    color: var(--foreground);
+}
+
+.input:focus {
+    outline: none;
+    border-color: var(--foreground);
+}
+
+.input:-webkit-autofill {
+    background-color: var(--background) !important;
+    color: var(--foreground) !important;
+    -webkit-box-shadow: 0 0 0px 1000px var(--background) inset !important;
+    box-shadow: 0 0 0px 1000px var(--background) inset !important;
+}
+
+.toggleButton {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--foreground);
+}

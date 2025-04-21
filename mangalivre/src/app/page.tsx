@@ -1,6 +1,6 @@
 "use client";
 
-import Hearder from "@/components/Header";
+import Header from "@/components/Header";
 import { useSelector } from "react-redux";
 import { RootState } from "@/redux/store";
 import { useEffect } from "react";
@@ -22,7 +22,7 @@ export default function HomePage() {
 
     return (
         <main>
-            <Hearder userName={user.name} />
+            <Header userName={user.name} />
         </main>
     )
 }
