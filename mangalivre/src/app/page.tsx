@@ -1,45 +1,28 @@
-import Image from "next/image";
-import styles from "./page.module.css";
-import Link from "next/link"; // Importando o Link
-import Form from "@/components/Form";
-import Button from "@/components/Button";
+"use client";
 
-export default function Home() {
+import Hearder from "@/components/Header";
+import { useSelector } from "react-redux";
+import { RootState } from "@/redux/store";
+import { useEffect } from "react";
+import { redirect } from "next/navigation";
 
-  return (
-    <main>
-      <h1
-        className={styles.title}
-      >
-        Seja bem-vindo ao MangaLivre!
-      </h1>
-      <Form>
-        <Image
-          className={styles.logo}
-          src="/logo.png"
-          alt="Logo do MangaLivre"
-          width={100}
-          height={100}
-        />
-        <label htmlFor="email">Email:</label>
-        <input type="email" id="email" name="email" required />
-        <br />
-        <label htmlFor="password">Senha:</label>
-        <input type="password" id="password" name="password" required />
-        <br />
-        <div className={styles.formButtonContainer}>
-          <Button
-            type="submit">
-            Entrar
-          </Button>
-          <Link href="/register">
-            <Button type="button">
-              Registrar
-            </Button>
-          </Link>
-        </div>
-        <br />
-      </Form>
-    </main >
-  );
+export default function HomePage() {
+
+    const user = useSelector((state: RootState) => state.user.user);
+
+    useEffect(() => {
+        if (!user) {
+            redirect("/login"); // Redireciona para login se o usuário não estiver logado
+        }
+    }, [user]);
+
+    if (!user) {
+        return null; // Evita renderizar a página enquanto redireciona
+    }
+
+    return (
+        <main>
+            <Hearder userName={user.name} />
+        </main>
+    )
 }

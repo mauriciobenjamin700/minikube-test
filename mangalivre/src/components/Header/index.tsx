@@ -1,7 +1,11 @@
 import Image from "next/image"
 import styles from "./styles.module.css"
 
-export default function Header() {
+interface headerProps {
+    userName: string;
+}
+
+export default function Header({ userName = "userName" }: headerProps) {
 
 
     return (
@@ -14,7 +18,7 @@ export default function Header() {
             />
             <h1>MangaLivre</h1>
             <div className={styles.userContainer}>
-                <p>UserName</p>
+                <p>{userName}</p>
                 <Image
                     src={"/user.svg"}
                     alt="User"
