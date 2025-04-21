@@ -3,6 +3,7 @@ import UserService from "@/services/user";
 import { UserLogin, UserRegister } from "@/types/user"
 import { handleError } from "@/core/handlers";
 
+
 export async function GET(request: Request) {
     try {
         // Extrai os parâmetros da URL

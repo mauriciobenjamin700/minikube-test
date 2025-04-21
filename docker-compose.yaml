@@ -25,5 +25,3 @@ services:
     container_name: mangalivre-app
     ports:
       - "3000:3000"
-    environment:
-      - DATABASE_URL=postgres://mangalivre:mangalivre@mangalivre-db:5432/mangalivre
