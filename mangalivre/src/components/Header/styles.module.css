@@ -1,0 +1,25 @@
+.container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 20px;
+    background-color: var(--background-gray);
+}
+
+.logo {
+    font-size: 24px;
+    font-weight: bold;
+    color: #343a40;
+}
+
+.userContainer {
+    display: flex;
+    align-items: center;
+    gap: 50px;
+
+}
+
+.userName {
+    font-size: 25px;
+    color: #343a40;
+}

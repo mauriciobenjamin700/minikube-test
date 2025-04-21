@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mangalivre-db
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mangalivre-db
+  template:
+    metadata:
+      labels:
+        app: mangalivre-db
+    spec:
+      containers:
+        - name: mangalivre-db
+          image: mangalivre-db
+          imagePullPolicy: Never
+          env:
+            - name: POSTGRES_USER
+              value: "mangalivre"
+            - name: POSTGRES_PASSWORD
+              value: "mangalivre"
+            - name: POSTGRES_DB
+              value: "mangalivre"
+          ports:
+            - containerPort: 5432
+          volumeMounts:
+            - name: postgres-data
+              mountPath: /var/lib/postgresql/data
+      volumes:
+        - name: postgres-data
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mangalivre-db
+spec:
+  ports:
+    - port: 5432
+      targetPort: 5432
+  selector:
+    app: mangalivre-db
