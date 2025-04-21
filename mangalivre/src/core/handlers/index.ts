@@ -1,6 +1,6 @@
 import { HttpError } from "@/core/errors";
 
-export function handleError(error: any): Response {
+export function handleError(error: unknown): Response {
     if (error instanceof HttpError) {
         return new Response(JSON.stringify({
             status_code: error.statusCode,

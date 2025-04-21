@@ -18,7 +18,7 @@ export async function POST(request: Request) {
                 "Content-Type": "application/json"
             }
         });
-    } catch (error: any) {
+    } catch (error) {
         console.log("error: ", error);
         return handleError(error);
     }

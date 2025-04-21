@@ -1,0 +1,50 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mangalivre-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: mangalivre-app
+  template:
+    metadata:
+      labels:
+        app: mangalivre-app
+    spec:
+      containers:
+        - name: mangalivre-app
+          image: mangalivre-app:latest
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 3000
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 3000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 3000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: "200m" # 200 milicores (0.2 CPU)
+            limits:
+              cpu: "500m" # 500 milicores (0.5 CPU)
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mangalivre-app
+spec:
+  ports:
+    - port: 3000
+      targetPort: 3000
+  selector:
+    app: mangalivre-app
+  type: NodePort

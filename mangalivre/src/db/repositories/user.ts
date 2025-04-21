@@ -1,7 +1,7 @@
 import { Pool } from "pg"; // Importa o Pool do pg
 import pool from "@/db";
 import UserModel from "../models/user";
-import { UserLogin, UserRegister } from "@/types/user";
+import { UserRegister } from "@/types/user";
 
 /**
  * Class representing a User repository.
@@ -83,7 +83,7 @@ class UserRepository {
             SELECT * FROM users
         `;
         const result = await this.db.query(query);
-        const users: UserModel[] = result.rows.map((user: any) => {
+        const users: UserModel[] = result.rows.map((user: UserModel) => {
             return new UserModel(
                 user.id,
                 user.name,

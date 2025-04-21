@@ -32,7 +32,7 @@ export async function GET(request: Request) {
             }
         });
 
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.log("error: ", error);
         return handleError(error);
     }
@@ -55,7 +55,7 @@ export async function POST(request: Request) {
                 "Content-Type": "application/json"
             }
         });
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.log("error: ", error);
         return handleError(error);
     }
