@@ -727,3 +727,47 @@ O número de réplicas antes/depois do HPA atuar
 Quais pods estão ativos
 
 Quando o HPA escala a aplicação
+
+✅ O que o projeto exige
+1. Número de pods ativos
+🔍 Métrica esperada: kube_pod_status_phase
+
+✅ Como obter: essa métrica vem do kube-state-metrics, que não está incluído por padrão no Prometheus puro.
+
+❗ Solução: Você precisa instalar o kube-state-metrics no cluster Kubernetes no Notebook A.
+
+2. Uso de CPU por pod/container
+🔍 Métrica esperada: container_cpu_usage_seconds_total
+
+✅ Como obter: essa métrica vem do cAdvisor, que está embutido no kubelet.
+
+⚠️ Atenção: você precisa garantir que o endpoint /metrics/cadvisor do kubelet (geralmente na porta 10255) esteja acessível de fora do cluster (Notebook B).
+
+❗ Alternativa: Rodar o node-exporter como DaemonSet no cluster e expor essa porta.
+
+3. Estado dos pods (Running, Failed, Pending)
+🔍 Métrica esperada: kube_pod_status_phase{phase="Running"} e similares.
+
+✅ Como obter: vem do kube-state-metrics.
+
+4. Ações disparadas pelo HPA (número de réplicas ao longo do tempo)
+🔍 Métrica esperada:
+
+kube_hpa_status_current_replicas
+
+kube_hpa_status_desired_replicas
+
+✅ Como obter: também vem do kube-state-metrics.
+
+✅ Conclusão
+✔️ Para cumprir 100% dos requisitos, você precisa:
+📦 Instalar o kube-state-metrics no seu cluster Minikube (Notebook A).
+
+📈 Garantir que o Prometheus consiga acessar:
+
+kubelet (para cAdvisor ou métricas brutas de containers)
+
+kube-state-metrics (para status dos pods, réplicas e HPA)
+
+node-exporter (para métricas da máquina física, se quiser)
+
