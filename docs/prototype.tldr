@@ -36,9 +36,9 @@
 		{
 			"id": "pointer:pointer",
 			"typeName": "pointer",
-			"x": 876,
-			"y": 414,
-			"lastActivityTimestamp": 1745172046397,
+			"x": 713.7603860226794,
+			"y": 321.2451747165073,
+			"lastActivityTimestamp": 1745366724274,
 			"meta": {}
 		},
 		{
@@ -88,9 +88,9 @@
 			"typeName": "shape"
 		},
 		{
-			"x": 0,
-			"y": 0,
-			"z": 1,
+			"x": -91.78731674647601,
+			"y": -28.40960513510413,
+			"z": 0.8264023402140983,
 			"meta": {},
 			"id": "camera:page:page",
 			"typeName": "camera"
@@ -99,9 +99,9 @@
 			"editingShapeId": null,
 			"croppingShapeId": null,
 			"selectedShapeIds": [
-				"shape:X6XJEchcq3USWIlMNQ3z0"
+				"shape:F6jE0HPwcho-hqI1RO6Uf"
 			],
-			"hoveredShapeId": null,
+			"hoveredShapeId": "shape:F6jE0HPwcho-hqI1RO6Uf",
 			"erasingShapeIds": [],
 			"hintingShapeIds": [],
 			"focusedGroupId": null,
@@ -148,8 +148,8 @@
 			"typeName": "shape"
 		},
 		{
-			"x": 626,
-			"y": 291,
+			"x": 621.159742651547,
+			"y": 278.8993566288676,
 			"rotation": 0,
 			"isLocked": false,
 			"opacity": 1,
@@ -157,8 +157,8 @@
 			"id": "shape:F6jE0HPwcho-hqI1RO6Uf",
 			"type": "geo",
 			"props": {
-				"w": 118,
-				"h": 56.296875,
+				"w": 128.89057903401908,
+				"h": 80.59375,
 				"geo": "rectangle",
 				"color": "black",
 				"labelColor": "black",
@@ -182,7 +182,7 @@
 							"content": [
 								{
 									"type": "text",
-									"text": "Login"
+									"text": "Password"
 								}
 							]
 						}
@@ -210,10 +210,7 @@
 		{
 			"followingUserId": null,
 			"opacityForNextShape": 1,
-			"stylesForNextShape": {
-				"tldraw:geo": "rectangle",
-				"tldraw:size": "s"
-			},
+			"stylesForNextShape": {},
 			"brush": null,
 			"scribbles": [],
 			"cursor": {
@@ -227,8 +224,8 @@
 			"screenBounds": {
 				"x": 0,
 				"y": 0,
-				"w": 1454,
-				"h": 602
+				"w": 1148,
+				"h": 628
 			},
 			"insets": [
 				false,
