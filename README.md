@@ -653,3 +653,77 @@ mauriciobenjamin700@mauriciobenjamin700-Latitude-5300:~/projects/course/ufpi/min
 ```
 
 Quando a carga de CPU diminuir, o HPA reduzirá automaticamente o número de réplicas para o valor mínimo configurado (minReplicas).
+
+
+✅ Notebook B – Prometheus
+Objetivo
+Implantar o Prometheus no Notebook B para monitorar remotamente o cluster Kubernetes rodando no Notebook A, e exibir métricas em tempo real como:
+
+Número de pods ativos
+
+Uso de CPU
+
+Estado dos pods (Running, Failed, Pending)
+
+Ações disparadas pelo HPA
+
+Pré-requisitos
+A comunicação de rede entre o Notebook B e o Minikube (Kubernetes) rodando no Notebook A deve estar funcionando (ping, curl etc.).
+
+O Metrics Server deve estar habilitado no cluster Kubernetes (já feito no README).
+
+Prometheus precisa ser configurado para acessar os endpoints do Kubernetes remotamente.
+
+Passo 1: Instalar o Prometheus
+No Notebook B, baixe e instale o Prometheus:
+```bash
+wget https://github.com/prometheus/prometheus/releases/download/v2.52.0/prometheus-2.52.0.linux-amd64.tar.gz
+tar -xzf prometheus-2.52.0.linux-amd64.tar.gz
+cd prometheus-2.52.0.linux-amd64
+```
+
+Passo 2: Configurar o Prometheus para acessar o cluster Kubernetes
+Edite o arquivo prometheus.yml para incluir os endpoints do cluster Kubernetes. Exemplo de configuração básica:
+```bash
+global:
+  scrape_interval: 15s
+
+scrape_configs:
+  - job_name: 'kubernetes-nodes'
+    static_configs:
+      - targets: ['<IP_DO_NOTEBOOK_A>:10255'] # ou porta exposta para cAdvisor
+
+  - job_name: 'kubernetes-pods'
+    static_configs:
+      - targets: ['<IP_DO_NOTEBOOK_A>:3000']  # serviço da aplicação
+```
+
+Passo 3: Executar o Prometheus
+No terminal do Notebook B:
+```bash
+./prometheus --config.file=prometheus.yml
+```
+Acesse no navegador:
+🔗 http://localhost:9090
+
+Passo 4: Verificar Métricas em Tempo Real
+No Prometheus Web UI:
+
+1. Pesquise por métricas como:
+```bash
+kube_pod_status_phase
+
+container_cpu_usage_seconds_total
+
+kube_deployment_status_replicas
+
+kube_hpa_status_current_replicas
+```
+
+2. Você pode acompanhar:
+
+O número de réplicas antes/depois do HPA atuar
+
+Quais pods estão ativos
+
+Quando o HPA escala a aplicação
