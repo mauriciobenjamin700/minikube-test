@@ -218,7 +218,7 @@ Inicie o Minikube usando:
 minikube start
 ```
 
-Caso queira confirir se ele realmente iniciou corretamente, use:
+Caso queira conferir se ele realmente iniciou corretamente, use:
 
 ```bash
 minikube status
@@ -438,7 +438,7 @@ Resultado esperado
 ```bash
 mauriciobenjamin700@mauriciobenjamin700-Latitude-5300:~/projects/course/ufpi/minikube-test$ kubectl get deployment -n kube-system metrics-server
 NAME             READY   UP-TO-DATE   AVAILABLE   AGE
-metrics-server   0/1     1            0           6s
+metrics-server   1/1     1            0           6s
 ```
 
 O HPA precisa de limites de CPU (resources.requests.cpu) configurados no Deployment para funcionar. Atualize o arquivo `mangalivre-app-deployment.yaml` para incluir os recursos:
@@ -461,45 +461,6 @@ spec:
 Ao final, seu arquivo `mangalivre-app-deployment.yaml` estará desta forma:
 
 ```yml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: mangalivre-app
-spec:
-  replicas: 2
-  selector:
-    matchLabels:
-      app: mangalivre-app
-  template:
-    metadata:
-      labels:
-        app: mangalivre-app
-    spec:
-      containers:
-        - name: mangalivre-app
-          image: mangalivre-app:latest
-          imagePullPolicy: Never
-          ports:
-            - containerPort: 3000
-          livenessProbe:
-            httpGet:
-              path: /
-              port: 3000
-            initialDelaySeconds: 5
-            periodSeconds: 10
-
-          readinessProbe:
-            httpGet:
-              path: /
-              port: 3000
-            initialDelaySeconds: 5
-            periodSeconds: 10
-          resources:
-            requests:
-              cpu: "200m" # 200 milicores (0.2 CPU)
-            limits:
-              cpu: "500m" # 500 milicores (0.5 CPU)
----
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -654,163 +615,45 @@ mauriciobenjamin700@mauriciobenjamin700-Latitude-5300:~/projects/course/ufpi/min
 
 Quando a carga de CPU diminuir, o HPA reduzirá automaticamente o número de réplicas para o valor mínimo configurado (minReplicas).
 
+### Notebook B – Prometheus
 
-✅ Notebook B – Prometheus
-Objetivo
-Implantar o Prometheus no Notebook B para monitorar remotamente o cluster Kubernetes rodando no Notebook A, e exibir métricas em tempo real como:
+Instalação e Configuração do Prometheus com Helm + Monitoramento Remoto
 
-Número de pods ativos
-
-Uso de CPU
-
-Estado dos pods (Running, Failed, Pending)
-
-Ações disparadas pelo HPA
-
-Pré-requisitos
-A comunicação de rede entre o Notebook B e o Minikube (Kubernetes) rodando no Notebook A deve estar funcionando (ping, curl etc.).
-
-O Metrics Server deve estar habilitado no cluster Kubernetes (já feito no README).
-
-Prometheus precisa ser configurado para acessar os endpoints do Kubernetes remotamente.
-
-Passo 1: Instalar o Prometheus
-No Notebook B, baixe e instale o Prometheus:
-```bash
-wget https://github.com/prometheus/prometheus/releases/download/v2.52.0/prometheus-2.52.0.linux-amd64.tar.gz
-tar -xzf prometheus-2.52.0.linux-amd64.tar.gz
-cd prometheus-2.52.0.linux-amd64
-```
-
-Passo 2: Configurar o Prometheus para acessar o cluster Kubernetes
-Edite o arquivo prometheus.yml para incluir os endpoints do cluster Kubernetes. Exemplo de configuração básica:
-```bash
-global:
-  scrape_interval: 15s
-
-scrape_configs:
-  - job_name: 'kubernetes-nodes'
-    static_configs:
-      - targets: ['<IP_DO_NOTEBOOK_A>:10255'] # ou porta exposta para cAdvisor
-
-  - job_name: 'kubernetes-pods'
-    static_configs:
-      - targets: ['<IP_DO_NOTEBOOK_A>:3000']  # serviço da aplicação
-```
-
-Passo 3: Executar o Prometheus
-No terminal do Notebook B:
-```bash
-./prometheus --config.file=prometheus.yml
-```
-Acesse no navegador:
-🔗 http://localhost:9090
-
-Passo 4: Verificar Métricas em Tempo Real
-No Prometheus Web UI:
-
-1. Pesquise por métricas como:
-```bash
-kube_pod_status_phase
-
-container_cpu_usage_seconds_total
-
-kube_deployment_status_replicas
-
-kube_hpa_status_current_replicas
-```
-
-2. Você pode acompanhar:
-
-O número de réplicas antes/depois do HPA atuar
-
-Quais pods estão ativos
-
-Quando o HPA escala a aplicação
-
-✅ O que o projeto exige
-1. Número de pods ativos
-🔍 Métrica esperada: kube_pod_status_phase
-
-✅ Como obter: essa métrica vem do kube-state-metrics, que não está incluído por padrão no Prometheus puro.
-
-❗ Solução: Você precisa instalar o kube-state-metrics no cluster Kubernetes no Notebook A.
-
-2. Uso de CPU por pod/container
-🔍 Métrica esperada: container_cpu_usage_seconds_total
-
-✅ Como obter: essa métrica vem do cAdvisor, que está embutido no kubelet.
-
-⚠️ Atenção: você precisa garantir que o endpoint /metrics/cadvisor do kubelet (geralmente na porta 10255) esteja acessível de fora do cluster (Notebook B).
-
-❗ Alternativa: Rodar o node-exporter como DaemonSet no cluster e expor essa porta.
-
-3. Estado dos pods (Running, Failed, Pending)
-🔍 Métrica esperada: kube_pod_status_phase{phase="Running"} e similares.
-
-✅ Como obter: vem do kube-state-metrics.
-
-4. Ações disparadas pelo HPA (número de réplicas ao longo do tempo)
-🔍 Métrica esperada:
-
-kube_hpa_status_current_replicas
-
-kube_hpa_status_desired_replicas
-
-✅ Como obter: também vem do kube-state-metrics.
-
-✅ Conclusão
-✔️ Para cumprir 100% dos requisitos, você precisa:
-📦 Instalar o kube-state-metrics no seu cluster Minikube (Notebook A).
-
-📈 Garantir que o Prometheus consiga acessar:
-
-kubelet (para cAdvisor ou métricas brutas de containers)
-
-kube-state-metrics (para status dos pods, réplicas e HPA)
-
-node-exporter (para métricas da máquina física, se quiser)
-
-
-# 📘 Guia Completo: Instalação e Configuração do Prometheus com Helm + Monitoramento Remoto
-
-## 🧱 Pré-requisitos
+#### Pré-requisitos
 
 - Kubernetes cluster (Minikube, Kind, EKS, etc.)
 - `kubectl` instalado e configurado
 - `helm` instalado – [Instruções oficiais](https://helm.sh/docs/intro/install/)
 - Conectividade entre máquinas para monitoramento remoto
 
----
+#### Instalação do Prometheus com Helm
 
-## 🚀 Instalação do Prometheus com Helm
-
-### 1. Adicionar o repositório do Prometheus:
+##### 1. Adicionar o repositório do Prometheus
 
 ```bash
 helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
 helm repo update
 ```
 
-### 2. Criar um namespace para o Prometheus (opcional):
+##### 2. Criar um namespace para o Prometheus (opcional)
 
 ```bash
 kubectl create namespace monitoring
 ```
 
-### 3. Instalar o Prometheus:
+##### 3. Instalar o Prometheus
 
 ```bash
 helm install prometheus prometheus-community/prometheus   --namespace monitoring
 ```
 
-### 4. Verificar os pods:
+##### 4. Verificar os pods
 
 ```bash
 kubectl get pods -n monitoring
 ```
 
-### 5. Acessar a interface web do Prometheus localmente:
+##### 5. Acessar a interface web do Prometheus localmente
 
 ```bash
 kubectl port-forward -n monitoring svc/prometheus-server 9090:80
@@ -820,9 +663,9 @@ Acesse via navegador: [http://localhost:9090](http://localhost:9090)
 
 ---
 
-## 🌐 Monitorar Outros Clusters na Rede
+#### Monitorar Outros Clusters na Rede
 
-### 1. Criar arquivo `values.yaml` com scrapes remotos:
+##### 1. Crie o arquivo `values.yaml` com os scrapes remotos
 
 ```yaml
 server:
@@ -837,31 +680,29 @@ server:
         - targets: ['192.168.1.102:9100']
 ```
 
-### 2. Instalar (ou atualizar) Prometheus com essa configuração:
+##### 2. Instalar (ou atualizar) Prometheus com essa configuração
 
-#### Nova instalação:
+###### Nova instalação
 
 ```bash
 helm install prometheus prometheus-community/prometheus   -f values.yaml   --namespace monitoring
 ```
 
-#### Atualização:
+###### Atualização
 
 ```bash
 helm upgrade prometheus prometheus-community/prometheus   -f values.yaml   --namespace monitoring
 ```
 
-### 3. Rodar Node Exporter nas máquinas remotas:
+##### 3. Rodar Node Exporter nas máquinas remotas
 
 ```bash
 docker run -d   --name node-exporter   -p 9100:9100   --restart=always   prom/node-exporter
 ```
 
----
+#### Exemplos de Queries Prometheus para o Pod `mangalivre-app`
 
-## 📈 Exemplos de Queries Prometheus para o Pod `mangalivre-app`
-
-### 🔹 Uso de CPU
+##### Uso de CPU
 
 ```promql
 sum(rate(container_cpu_usage_seconds_total{pod="mangalivre-app"}[5m]))
@@ -871,7 +712,7 @@ sum(rate(container_cpu_usage_seconds_total{pod="mangalivre-app"}[5m]))
 rate(container_cpu_usage_seconds_total{pod="mangalivre-app"}[5m])
 ```
 
-### 🔹 Uso de Memória
+##### Uso de Memória
 
 ```promql
 container_memory_usage_bytes{pod="mangalivre-app"}
@@ -881,7 +722,7 @@ container_memory_usage_bytes{pod="mangalivre-app"}
 container_memory_rss{pod="mangalivre-app"}
 ```
 
-### 🔹 Disco
+##### Disco
 
 ```promql
 rate(container_fs_writes_bytes_total{pod="mangalivre-app"}[5m])
@@ -891,7 +732,7 @@ rate(container_fs_writes_bytes_total{pod="mangalivre-app"}[5m])
 rate(container_fs_reads_bytes_total{pod="mangalivre-app"}[5m])
 ```
 
-### 🔹 Rede
+##### Rede
 
 ```promql
 rate(container_network_receive_bytes_total{pod="mangalivre-app"}[5m])
@@ -901,39 +742,42 @@ rate(container_network_receive_bytes_total{pod="mangalivre-app"}[5m])
 rate(container_network_transmit_bytes_total{pod="mangalivre-app"}[5m])
 ```
 
-### 🔹 Status do Pod
+##### Status do Pod
 
 ```promql
 kube_pod_status_phase{pod="mangalivre-app", phase="Running"}
 ```
 
-### 🔹 Requisições HTTP (se o app expõe essa métrica)
+##### Requisições HTTP (se o app expõe essa métrica)
 
 ```promql
 rate(http_requests_total{pod="mangalivre-app"}[1m])
 ```
 
----
+#### Consultas com Regex
 
-## 🔍 Consultas com Regex
-
-### Todas as métricas com o pod exato:
+##### Todas as métricas com o pod exato
 
 ```promql
 {pod="mangalivre-app"}
 ```
 
-### Todas as métricas que começam com `mangalivre` (regex):
+##### Todas as métricas que começam com `mangalivre` (regex)
 
 ```promql
 {pod=~"mangalivre.*"}
 ```
 
-### Com namespace específico:
+##### Com namespace específico
 
 ```promql
 {pod=~"mangalivre.*", namespace="default"}
 ```
 
----
+## Conclusão
 
+Este foi o nosso trabalho sobre Tolerância a Falhas e Monitoramento com Kubernetes + Prometheus. Em caso de dúvidas podem abrir uma issue [neste projeto](https://github.com/mauriciobenjamin700/minikube-test) ou entrar em contato com algum dos membros autores a baixo:
+
+- [Mauricio Benjamin](https://github.com/mauriciobenjamin700)
+- [Clistenes Rogder](https://github.com/clistenesrodger)
+- [Pedro Vital](https://github.com/pedroVital13)

@@ -1,0 +1,71 @@
+/* Estilo para o corpo do texto */
+body {
+    text-align: justify;
+    font-family: 'Times New Roman', Times, serif;
+    font-size: 12px;
+    /* Tamanho padrão para o texto corrido */
+}
+
+/* Estilo para os parágrafos */
+p {
+    text-align: justify;
+    font-family: 'Times New Roman', Times, serif;
+    font-size: 12px;
+    /* Tamanho do texto corrido */
+}
+
+h1 {
+    text-align: center;
+}
+
+/* Estilo para os cabeçalhos */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    font-family: 'Times New Roman', Times, serif;
+    font-size: 14px;
+    /* Tamanho padrão para todos os cabeçalhos */
+    font-weight: bold;
+}
+
+
+/* Centralizar textos após tabelas ou imagens
+table+strong, img+strong {
+    display: block;
+    text-align: center;
+    margin: 20px 0;
+    font-size: 12px;
+} */
+
+.center-text {
+    text-align: center;
+    margin: 0 auto;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100px;
+    /* Ajuste conforme necessário */
+}
+
+/* Centralizar tabelas */
+table {
+    margin: 0 auto;
+    /* Centraliza a tabela horizontalmente */
+    border-collapse: collapse;
+    /* Remove espaços entre bordas */
+    width: auto;
+    /* Ajusta a largura da tabela ao conteúdo */
+}
+
+/* Estilo para bordas e alinhamento */
+table, th, td {
+    border: 1px solid black;
+    /* Adiciona bordas às células */
+    text-align: center;
+    /* Centraliza o texto dentro das células */
+    padding: 8px;
+    /* Adiciona espaçamento interno */
+}
