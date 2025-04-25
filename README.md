@@ -771,3 +771,169 @@ kube-state-metrics (para status dos pods, réplicas e HPA)
 
 node-exporter (para métricas da máquina física, se quiser)
 
+
+# 📘 Guia Completo: Instalação e Configuração do Prometheus com Helm + Monitoramento Remoto
+
+## 🧱 Pré-requisitos
+
+- Kubernetes cluster (Minikube, Kind, EKS, etc.)
+- `kubectl` instalado e configurado
+- `helm` instalado – [Instruções oficiais](https://helm.sh/docs/intro/install/)
+- Conectividade entre máquinas para monitoramento remoto
+
+---
+
+## 🚀 Instalação do Prometheus com Helm
+
+### 1. Adicionar o repositório do Prometheus:
+
+```bash
+helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+helm repo update
+```
+
+### 2. Criar um namespace para o Prometheus (opcional):
+
+```bash
+kubectl create namespace monitoring
+```
+
+### 3. Instalar o Prometheus:
+
+```bash
+helm install prometheus prometheus-community/prometheus   --namespace monitoring
+```
+
+### 4. Verificar os pods:
+
+```bash
+kubectl get pods -n monitoring
+```
+
+### 5. Acessar a interface web do Prometheus localmente:
+
+```bash
+kubectl port-forward -n monitoring svc/prometheus-server 9090:80
+```
+
+Acesse via navegador: [http://localhost:9090](http://localhost:9090)
+
+---
+
+## 🌐 Monitorar Outros Clusters na Rede
+
+### 1. Criar arquivo `values.yaml` com scrapes remotos:
+
+```yaml
+server:
+  global:
+    scrape_interval: 15s
+  extraScrapeConfigs:
+    - job_name: 'remote-cluster-node1'
+      static_configs:
+        - targets: ['192.168.1.101:9100']
+    - job_name: 'remote-cluster-node2'
+      static_configs:
+        - targets: ['192.168.1.102:9100']
+```
+
+### 2. Instalar (ou atualizar) Prometheus com essa configuração:
+
+#### Nova instalação:
+
+```bash
+helm install prometheus prometheus-community/prometheus   -f values.yaml   --namespace monitoring
+```
+
+#### Atualização:
+
+```bash
+helm upgrade prometheus prometheus-community/prometheus   -f values.yaml   --namespace monitoring
+```
+
+### 3. Rodar Node Exporter nas máquinas remotas:
+
+```bash
+docker run -d   --name node-exporter   -p 9100:9100   --restart=always   prom/node-exporter
+```
+
+---
+
+## 📈 Exemplos de Queries Prometheus para o Pod `mangalivre-app`
+
+### 🔹 Uso de CPU
+
+```promql
+sum(rate(container_cpu_usage_seconds_total{pod="mangalivre-app"}[5m]))
+```
+
+```promql
+rate(container_cpu_usage_seconds_total{pod="mangalivre-app"}[5m])
+```
+
+### 🔹 Uso de Memória
+
+```promql
+container_memory_usage_bytes{pod="mangalivre-app"}
+```
+
+```promql
+container_memory_rss{pod="mangalivre-app"}
+```
+
+### 🔹 Disco
+
+```promql
+rate(container_fs_writes_bytes_total{pod="mangalivre-app"}[5m])
+```
+
+```promql
+rate(container_fs_reads_bytes_total{pod="mangalivre-app"}[5m])
+```
+
+### 🔹 Rede
+
+```promql
+rate(container_network_receive_bytes_total{pod="mangalivre-app"}[5m])
+```
+
+```promql
+rate(container_network_transmit_bytes_total{pod="mangalivre-app"}[5m])
+```
+
+### 🔹 Status do Pod
+
+```promql
+kube_pod_status_phase{pod="mangalivre-app", phase="Running"}
+```
+
+### 🔹 Requisições HTTP (se o app expõe essa métrica)
+
+```promql
+rate(http_requests_total{pod="mangalivre-app"}[1m])
+```
+
+---
+
+## 🔍 Consultas com Regex
+
+### Todas as métricas com o pod exato:
+
+```promql
+{pod="mangalivre-app"}
+```
+
+### Todas as métricas que começam com `mangalivre` (regex):
+
+```promql
+{pod=~"mangalivre.*"}
+```
+
+### Com namespace específico:
+
+```promql
+{pod=~"mangalivre.*", namespace="default"}
+```
+
+---
+
