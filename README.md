@@ -1,783 +1,336 @@
 # Tolerância a Falhas e Monitoramento com Kubernetes + Prometheus
 
-**Objetivo Geral**:
+**Atividade 4** — implantar uma aplicação distribuída em um cluster Kubernetes local (Minikube), aplicando tolerância a falhas, auto-recuperação, escalonamento horizontal (HPA) e monitoramento com Prometheus, tudo em **um único notebook**.
 
-Implantar uma aplicação distribuída com Kubernetes em um ambiente local, aplicando técnicas de tolerância a falhas, auto-recuperação, escalonamento horizontal e monitoramento remoto, utilizando dois notebooks interligados.
+- 📄 Relatório: [`docs/relatorio.md`](./docs/relatorio.md)
+- 🎬 Roteiro para gravar o vídeo: [seção Roteiro de demonstração](#roteiro-de-demonstração-vídeo)
 
-## Descrição da Implantação
+## Requisitos da atividade e onde estão atendidos
 
-- ✅ Notebook A – Cluster Kubernetes
-  - Criar um cluster local com Minikube.
-  - Implantar uma aplicação com múltiplos pods, iniciando com duas réplicas.
-  - **Atenção**: a aplicação não pode ser reutilizada de atividades anteriores da disciplina.
-  - Habilitar o mecanismo de auto-healing, garantindo que pods sejam recriados automaticamente em caso de falha.
-  - Configurar o Horizontal Pod Autoscaler (HPA) com base no uso de CPU.
-- ✅ Notebook B – Prometheus
-  - Implantar o Prometheus para monitoramento remoto do cluster Kubernetes no Notebook A.
-  - Exibir métricas em tempo real, como:
-  - Número de pods ativos
-  - Uso de CPU
-  - Estado dos pods (Running, Failed, Pending)
-  - Ações disparadas pelo HPA
+| Requisito | Onde |
+| --- | --- |
+| Deployment com 2 réplicas iniciais | [`k8s/mangalivre-app-deployment.yaml`](./k8s/mangalivre-app-deployment.yaml) (`replicas: 2`) |
+| `requests` e `limits` de CPU | mesmo arquivo — `200m` / `500m` |
+| `livenessProbe` | mesmo arquivo — `GET /api/health` a cada 5 s, timeout 5 s, 3 falhas para reiniciar |
+| Horizontal Pod Autoscaler | [`k8s/mangalivre-app-hpa.yaml`](./k8s/mangalivre-app-hpa.yaml) — 2 a 5 réplicas, alvo 50% de CPU |
+| Prometheus (pods ativos, CPU, estado, restarts, HPA) | [`k8s/monitoring/prometheus-values.yaml`](./k8s/monitoring/prometheus-values.yaml) + [consultas PromQL](#consultas-promql) |
+| Experimento 1 — deleção de pod | [`scripts/exp1-delete-pod.sh`](./scripts/exp1-delete-pod.sh) |
+| Experimento 2 — falha no container | [`scripts/exp2-container-crash.sh`](./scripts/exp2-container-crash.sh) |
+| Experimento 3 — sobrecarga de CPU | [`scripts/exp3-cpu-load.sh`](./scripts/exp3-cpu-load.sh) + [`k8s/load-generator.yaml`](./k8s/load-generator.yaml) |
+| Experimento 4 — interrupção do monitoramento | [`scripts/exp4-prometheus-down.sh`](./scripts/exp4-prometheus-down.sh) |
 
-## Demonstração de Tolerância a Falhas
+## A aplicação
 
-Antes de iniciar os testes, mostre que sua aplicação está rodando normalmente com as duas réplicas previstas.
+[**Mangá Livre**](./mangalivre/) é uma aplicação Next.js 15 (cadastro e login de usuários) com um banco PostgreSQL próprio ([`mangalivre/database`](./mangalivre/database/)). Para a atividade ela expõe quatro rotas de apoio:
 
-- 1.Deleção Manual de Pod (Auto-Healing)
-  - Delete manualmente um dos pods da aplicação.
-  - Observe como o controlador do Kubernetes detecta a falha e recria automaticamente um novo pod.
-- 📌 O que demonstrar:
-  - A recriação rápida de um novo pod após a deleção.
-  - O status de “Terminating” do pod anterior e a entrada do novo em “Running”.
-  - A atualização das métricas no Prometheus (mudança no número de pods ativos, novo identificador, tempo de reação).
-- 2.Sobrecarga de CPU (Escalonamento Horizontal)
-  - Gere uma carga de CPU artificial em um ou mais pods da aplicação.
-  - Observe como o HPA aumenta automaticamente o número de réplicas para atender à demanda.
-- 📌 O que demonstrar:
-  - A elevação do consumo de CPU no Prometheus.
-  - A criação de novos pods, respeitando o limite configurado no HPA.
-  - O tempo de resposta entre o pico de CPU e o escalonamento automático.
-  - A redução do número de réplicas após estabilização (se aplicável).
+| Rota | Para que serve |
+| --- | --- |
+| `GET /api/health` | Alvo da `livenessProbe` e da `readinessProbe`. Não toca o banco, para uma queda do Postgres não reiniciar a aplicação em cascata. |
+| `GET /api/metrics` | Métricas no formato Prometheus (`prom-client`), coletadas via annotations `prometheus.io/*` do pod. |
+| `POST /api/crash` | Encerra o processo Node com `exit 1` (Experimento 2). Só funciona com `ENABLE_CRASH_ENDPOINT=true`. |
+| `GET /api/load?ms=300` | Consome CPU por até 1 s por requisição (Experimento 3). Como chega pelo Service, a carga se distribui entre as réplicas. |
 
-## Resultados
+## 1. Preparar o ambiente
 
-Primeiramente, vamos configurar o ambiente, onde recomendamos fortemente que siga a [documentação oficial](https://minikube.sigs.k8s.io/docs/start/?arch=%2Flinux%2Fx86-64%2Fstable%2Fdebian+package) com base em seu sistema operacional.
+Testado em Ubuntu 24.04 (WSL2), Docker 29, Minikube v1.39 (Kubernetes v1.37), kubectl v1.37 e Helm v3.16. Os comandos abaixo valem para Ubuntu/Debian em `amd64`.
 
-Usaremos Linux Ubuntu 24.04 LTS neste projeto
+**Requisitos de máquina:** 4 CPUs e 8 GB de RAM livres para o cluster (o Minikube é iniciado com `--cpus=4 --memory=6g`), e ~20 GB de disco. Com menos recursos, reduza esses valores no `minikube start`, mas o Experimento 3 pode não chegar a 5 réplicas.
 
-### Instalando Minikube
+### 1.1 Pacotes básicos
 
-Usaremos o comando a baixo para instalar:
+```bash
+sudo apt-get update
+sudo apt-get install -y ca-certificates curl git
+```
+
+### 1.2 Docker
+
+O Minikube usa o Docker como driver: o "nó" do cluster roda como um container. Instalação pelo repositório oficial ([documentação](https://docs.docker.com/engine/install/ubuntu/)):
+
+```bash
+sudo install -m 0755 -d /etc/apt/keyrings
+sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+sudo chmod a+r /etc/apt/keyrings/docker.asc
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo "$VERSION_CODENAME") stable" \
+  | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+sudo apt-get update
+sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin
+```
+
+> No Debian, troque `linux/ubuntu` por `linux/debian` nas duas URLs.
+
+Permita usar o Docker sem `sudo`. O Minikube **recusa** rodar o driver Docker como root:
+
+```bash
+sudo usermod -aG docker $USER
+newgrp docker
+```
+
+> ⚠️ O `newgrp` vale só para o terminal atual. Faça logout/login (ou reinicie o WSL com `wsl --shutdown`) para valer em todos.
+
+Verifique:
+
+```bash
+docker run --rm hello-world
+```
+
+Resultado esperado: `Hello from Docker!`.
+
+### 1.3 Minikube
 
 ```bash
 curl -LO https://storage.googleapis.com/minikube/releases/latest/minikube_latest_amd64.deb
 sudo dpkg -i minikube_latest_amd64.deb
-
+rm minikube_latest_amd64.deb
+minikube version
 ```
 
-Use o comando `minikube start` para checar se o minikube esta funcionando corretamente.
-
-O resultado esperado será semelhante a este:
-
-```bash
-😄  minikube v1.35.0 on Ubuntu 24.04
-✨  Automatically selected the docker driver. Other choices: none, ssh
-📌  Using Docker driver with root privileges
-👍  Starting "minikube" primary control-plane node in "minikube" cluster
-🚜  Pulling base image v0.0.46 ...
-```
-
-Para interagir com o minikube, iremos instalar o kubectl (Linha de Comandos do Kubernets) seguindo a [documentação oficial](https://kubernetes.io/docs/tasks/tools/)
-
-Comandos usados
+### 1.4 kubectl
 
 ```bash
 curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
 curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl.sha256"
-```
-
-Use este comando para testar se o kubectl foi baixado com sucesso:
-
-```bash
 echo "$(cat kubectl.sha256)  kubectl" | sha256sum --check
-```
-
-Resultado esperado:
-
-```bash
-kubectl: OK
-```
-
-Agora o instale usando:
-
-```bash
 sudo install -o root -g root -m 0755 kubectl /usr/local/bin/kubectl
-```
-
-Use este comando para testar se a instalação aconteceu corretamente:
-
-```bash
+rm kubectl kubectl.sha256
 kubectl version --client
 ```
 
-Resultado esperado:
+O `sha256sum --check` deve imprimir `kubectl: OK` antes da instalação.
+
+> 💡 Alternativa sem instalar: `minikube kubectl -- get pods` baixa um kubectl compatível. Os scripts deste repositório chamam `kubectl` direto, então prefira instalar.
+
+### 1.5 Helm
 
 ```bash
-Client Version: v1.32.3
-Kustomize Version: v5.5.0
+curl -fsSL https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 | bash
+helm version
 ```
 
-### Criar um cluster local com Minikube
-
-Inicialmente vamos criar duas replicas da nossa aplicação [mangalivre](./mangalivre/) e uma do nosso [banco de dados](./mangalivre/database/) para centralizar os dados.
-
-Todos os nossos arquivos de configuração do `minikube` devem ficar na pasta [k8s](./k8s/) para organizar melhor o projeto.
-
-Iremos criar um arquivo chamado `mangalivre-db-deployment.yaml` para o banco de dados com o seguinte conteúdo:
-
-```yml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: mangalivre-db
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app: mangalivre-db
-  template:
-    metadata:
-      labels:
-        app: mangalivre-db
-    spec:
-      containers:
-        - name: mangalivre-db
-          image: mangalivre-db
-          imagePullPolicy: Never
-          env:
-            - name: POSTGRES_USER
-              value: "mangalivre"
-            - name: POSTGRES_PASSWORD
-              value: "mangalivre"
-            - name: POSTGRES_DB
-              value: "mangalivre"
-          ports:
-            - containerPort: 5432
-          volumeMounts:
-            - name: postgres-data
-              mountPath: /var/lib/postgresql/data
-      volumes:
-        - name: postgres-data
-          emptyDir: {}
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: mangalivre-db
-spec:
-  ports:
-    - port: 5432
-      targetPort: 5432
-  selector:
-    app: mangalivre-db
-```
-
-Agora vamos criar um arquivo chamado `mangalivre-app-deployment.yaml` para a nossa aplicação:
-
-```yml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: mangalivre-app
-spec:
-  replicas: 2
-  selector:
-    matchLabels:
-      app: mangalivre-app
-  template:
-    metadata:
-      labels:
-        app: mangalivre-app
-    spec:
-      containers:
-        - name: mangalivre-app
-          image: mangalivre-app:latest
-          imagePullPolicy: Never
-          ports:
-            - containerPort: 3000
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: mangalivre-app
-spec:
-  ports:
-    - port: 3000
-      targetPort: 3000
-  selector:
-    app: mangalivre-app
-  type: NodePort
-```
-
-Com esses arquivos em mãos, iremos usar os arquivos `Dockerfile` preparador anteriormente para iniciar nossa aplicação. Caso tenha curiosidade em saber o conteúdo destes arquivos, [clique aqui](./mangalivre/database/Dockerfile) para acessar o `Dockerfile` do Banco de Dados e [clique aqui](./mangalivre/Dockerfile) para acessar o `Dockerfile` da aplicação.
-
-Antes de iniciar, crie um arquivo `.env` dentro da pasta [mangalivre](./mangalivre/) com o seguinte conteúdo:
+### 1.6 Clonar o repositório
 
 ```bash
-DB_USER=mangalivre
-DB_PASSWORD=mangalivre
-DB_HOST=mangalivre-db
-DB_PORT=5432
-DB_NAME=mangalivre
+git clone https://github.com/mauriciobenjamin700/minikube-test.git
+cd minikube-test
+chmod +x scripts/*.sh
 ```
 
-Inicie o Minikube usando:
+Todos os comandos a partir daqui rodam na raiz do repositório.
+
+### Conferência final
 
 ```bash
-minikube start
+docker --version && minikube version --short && kubectl version --client && helm version --short
 ```
 
-Caso queira conferir se ele realmente iniciou corretamente, use:
+Os quatro comandos precisam responder sem erro. Os scripts usam também `curl`, `awk` e `date`, que já vêm no Ubuntu.
+
+## 2. Subir o cluster e a aplicação
 
 ```bash
-minikube status
+minikube start --driver=docker --cpus=4 --memory=6g
+minikube addons enable metrics-server
 ```
 
-e caso queira reiniciar, use:
+> O `metrics-server` é obrigatório: é dele que o HPA lê o uso de CPU.
+
+Construa as imagens **dentro** do Minikube. `minikube image build` funciona com qualquer runtime do cluster — o Minikube recente usa `containerd` por padrão, e aí o antigo `eval $(minikube docker-env) && docker build` falha com `404 page not found`.
 
 ```bash
-minikube stop
-minikube start
+minikube image build -t mangalivre-db:latest ./mangalivre/database/
+minikube image build -t mangalivre-app:latest ./mangalivre/
+minikube image ls | grep mangalivre
 ```
 
-Feito isso, agora vamos criar as imagens do nosso banco de dados e aplicação usando o Docker do Minikube com os seguintes comandos:
-
-```bash
-eval $(minikube docker-env)
-docker build -t mangalivre-db:latest ./mangalivre/database/
-docker build -t mangalivre-app:latest ./mangalivre/
-```
-
-Use o kubectl para aplicar os arquivos de configuração:
+Aplique os manifests:
 
 ```bash
 kubectl apply -f k8s/mangalivre-db-deployment.yaml
 kubectl apply -f k8s/mangalivre-app-deployment.yaml
-```
-
-Verifique se os pods e serviços foram criados corretamente:
-
-```bash
-kubectl get pods
-kubectl get services
-```
-
-Caso algum `pod` tenha falhado, tente criar novamente usando:
-
-```bash
-kubectl delete pod -l app=mangalivre-app
-kubectl apply -f k8s/mangalivre-app-deployment.yaml
-```
-
-Caso precise ver a estrutura e erros, use estes comandos
-
-```bash
-kubectl describe pod NOME_DO_POD
-kubectl logs NOME_DO_POD
-```
-
-**Obs**: Lembre de adaptar para o `pod` de sua necessidade
-
-Obtenha o URL do serviço do aplicativo com o comando:
-
-```bash
-minikube service mangalivre-app
-```
-
-Isso abrirá a aplicação no navegador no navegador.
-
-### Habilitando o mecanismo de auto-healing, garantindo que pods sejam recriados automaticamente em caso de falha
-
-No Kubernetes, o mecanismo de auto-healing já está habilitado por padrão para os pods gerenciados por um Deployment. O controlador do Deployment monitora os pods e recria automaticamente qualquer pod que falhe ou seja excluído.
-
-No entanto, você podemos garantir que o comportamento de auto-healing esteja configurado corretamente e ajustar algumas configurações para melhorar a resiliência.
-
-Ao adicionar um `livenessProbe` Para melhorar o auto-healing, isso permite que o Kubernetes detecte se o contêiner está em um estado inconsistente (por exemplo, travado) e reinicie o pod automaticamente.
-
-Iremos implementar isto em nosso `app` ao modificar o arquivo `mangalivre-app-deployment.yaml` no bloco `containers`:
-
-```yml
-containers:
-  - name: mangalivre-app
-    image: mangalivre-app:latest
-    imagePullPolicy: Never
-    ports:
-      - containerPort: 3000
-    livenessProbe:
-      httpGet:
-        path: /
-        port: 3000
-      initialDelaySeconds: 5
-      periodSeconds: 10
-```
-
-**obs**:
-
-- **httpGet**: Verifica se o endpoint / na porta 3000 está respondendo.
-- **initialDelaySeconds**: Aguarda 5 segundos antes de iniciar as verificações.
-- **periodSeconds**: Realiza a verificação a cada 10 segundos.
-
-Podemos adicionar também um `readinessProbe` para garantir que o pod só seja considerado pronto quando estiver realmente funcional. Isso evita que o Kubernetes envie tráfego para um pod que ainda está inicializando.
-
-Iremos implementar isto em nosso `app` ao modificar o arquivo `mangalivre-app-deployment.yaml` no bloco `containers` novamente:
-
-```yml
-    readinessProbe:
-      httpGet:
-        path: /
-        port: 3000
-      initialDelaySeconds: 5
-      periodSeconds: 10
-```
-
-Resultado final para o arquivo `mangalivre-db-deployment.yaml`:
-
-```yml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: mangalivre-app
-spec:
-  replicas: 2
-  selector:
-    matchLabels:
-      app: mangalivre-app
-  template:
-    metadata:
-      labels:
-        app: mangalivre-app
-    spec:
-      containers:
-        - name: mangalivre-app
-          image: mangalivre-app:latest
-          imagePullPolicy: Never
-          ports:
-            - containerPort: 3000
-          livenessProbe:
-            httpGet:
-              path: /
-              port: 3000
-            initialDelaySeconds: 5
-            periodSeconds: 10
-
-          readinessProbe:
-            httpGet:
-              path: /
-              port: 3000
-            initialDelaySeconds: 5
-            periodSeconds: 10
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: mangalivre-app
-spec:
-  ports:
-    - port: 3000
-      targetPort: 3000
-  selector:
-    app: mangalivre-app
-  type: NodePort
-```
-
-Vamos aplicar as mudanças usando
-
-```bash
-kubectl apply -f k8s/mangalivre-app-deployment.yaml
-```
-
-Agora vamos testar se realmente está funcionando.
-
-Veja os pods usando
-
-```bash
-kubectl get pods
-```
-
-Seu resultado será proximo deste
-
-```bash
-NAME                              READY   STATUS    RESTARTS   AGE
-mangalivre-app-57885677cc-grxnz   1/1     Running   0          89s
-mangalivre-app-57885677cc-ps6wn   1/1     Running   0          75s
-mangalivre-db-f76d86c6d-h4qth     1/1     Running   0          15m
-```
-
-Agora ao deletar um dos pods do app, usando este comando:
-
-```bash
-kubectl delete pod mangalivre-app-57885677cc-grxnz
-```
-
-Ao listar novamente usando:
-
-```bash
-kubectl get pods
-```
-
-Resultado:
-
-```bash
-NAME                              READY   STATUS    RESTARTS   AGE
-mangalivre-app-57885677cc-g9fd8   1/1     Running   0          33s
-mangalivre-app-57885677cc-ps6wn   1/1     Running   0          3m28s
-mangalivre-db-f76d86c6d-h4qth     1/1     Running   0          17m
-```
-
-Agora em caso de algo acontecer com nossa aplicação, os pods serão recriados.
-
-### Configurando o Horizontal Pod Autoscaler (HPA) com base no uso de CPU
-
-O HPA depende de métricas para funcionar. No Minikube, precisamos habilitar o `Metrics Server`, que coleta métricas de uso de CPU e memória.
-
-Para habilitar, use este comando:
-
-```bash
-minikube addons enable metrics-server
-```
-
-Verifique se o Metrics Server está funcionando usando:
-
-```bash
-kubectl get deployment -n kube-system metrics-server
-```
-
-Resultado esperado
-
-```bash
-mauriciobenjamin700@mauriciobenjamin700-Latitude-5300:~/projects/course/ufpi/minikube-test$ kubectl get deployment -n kube-system metrics-server
-NAME             READY   UP-TO-DATE   AVAILABLE   AGE
-metrics-server   1/1     1            0           6s
-```
-
-O HPA precisa de limites de CPU (resources.requests.cpu) configurados no Deployment para funcionar. Atualize o arquivo `mangalivre-app-deployment.yaml` para incluir os recursos:
-
-```yml
-spec:
-  containers:
-    - name: mangalivre-app
-      image: mangalivre-app:latest
-      imagePullPolicy: Never
-      ports:
-        - containerPort: 3000
-      resources:
-        requests:
-          cpu: "200m" # 200 milicores (0.2 CPU)
-        limits:
-          cpu: "500m" # 500 milicores (0.5 CPU)
-```
-
-Ao final, seu arquivo `mangalivre-app-deployment.yaml` estará desta forma:
-
-```yml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: mangalivre-app
-spec:
-  replicas: 2
-  selector:
-    matchLabels:
-      app: mangalivre-app
-  template:
-    metadata:
-      labels:
-        app: mangalivre-app
-    spec:
-      containers:
-        - name: mangalivre-app
-          image: mangalivre-app:latest
-          imagePullPolicy: Never
-          ports:
-            - containerPort: 3000
-          livenessProbe:
-            httpGet:
-              path: /
-              port: 3000
-            initialDelaySeconds: 5
-            periodSeconds: 10
-
-          readinessProbe:
-            httpGet:
-              path: /
-              port: 3000
-            initialDelaySeconds: 5
-            periodSeconds: 10
-          resources:
-            requests:
-              cpu: "200m" # 200 milicores (0.2 CPU)
-            limits:
-              cpu: "500m" # 500 milicores (0.5 CPU)
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: mangalivre-app
-spec:
-  ports:
-    - port: 3000
-      targetPort: 3000
-  selector:
-    app: mangalivre-app
-  type: NodePort
-```
-
-Aplique as mudanças usando:
-
-```bash
-kubectl apply -f k8s/mangalivre-app-deployment.yaml
-```
-
-Agora crie um arquivo chamado `mangalivre-app-hpa.yaml` para configurar o HPA com o seguinte conteúdo:
-
-```yml
-apiVersion: autoscaling/v2
-kind: HorizontalPodAutoscaler
-metadata:
-  name: mangalivre-app-hpa
-spec:
-  scaleTargetRef:
-    apiVersion: apps/v1
-    kind: Deployment
-    name: mangalivre-app
-  minReplicas: 2
-  maxReplicas: 5
-  metrics:
-    - type: Resource
-      resource:
-        name: cpu
-        target:
-          type: Utilization
-          averageUtilization: 50 # Escala quando o uso de CPU ultrapassar 50%
-```
-
-Aplique o HPA usando:
-
-```bash
 kubectl apply -f k8s/mangalivre-app-hpa.yaml
+kubectl rollout status deploy/mangalivre-app
+kubectl get pods,svc,hpa
 ```
 
-Resultado esperado:
+Abra a aplicação no navegador:
 
 ```bash
-horizontalpodautoscaler.autoscaling/mangalivre-app-hpa created
+minikube service mangalivre-app --url
 ```
 
-Use o comando abaixo para verificar o status do HPA:
+## 3. Subir o Prometheus
 
-```bash
-kubectl get hpa
-```
-
-Você verá algo como:
-
-```bash
-NAME                 REFERENCE                   TARGETS              MINPODS   MAXPODS   REPLICAS   AGE
-mangalivre-app-hpa   Deployment/mangalivre-app   cpu: <unknown>/50%   2         5         2          58s
-```
-
-**Obs**:
-
-- **TARGETS**: Mostra o uso atual de CPU em relação ao alvo configurado (50%).
-- **REPLICAS**: Mostra o número atual de réplicas.
-
-Para testar o HPA, podemos gerar uma carga de CPU nos pods do mangalivre-app. Usaremos a ferramenta kubectl exec para executar um script que consome CPU.
-
-Dado nossos pods que podemos escolher usando `kubectl get pods`:
-
-```bash
-NAME                              READY   STATUS    RESTARTS   AGE
-mangalivre-app-57885677cc-g9fd8   1/1     Running   0          19m
-mangalivre-app-57885677cc-ps6wn   1/1     Running   0          22m
-mangalivre-db-f76d86c6d-h4qth     1/1     Running   0          37m
-```
-
-Vamos escolher `mangalivre-app-57885677cc-ps6wn` para o teste.
-
-Execute o script a baixo em outro de seus terminais:
-
-```bash
-kubectl exec -it mangalivre-app-57885677cc-ps6wn -- /bin/sh -c "yes > /dev/null &"
-```
-
-Verifique novamente o HPA usando:
-
-```bash
-kubectl get hpa
-```
-
-E os pods usando:
-
-```bash
-kubectl top pods
-```
-
-Você verá novos pods sendo criados para lidar com a carga.
-
-```bash
-NAME                              CPU(cores)   MEMORY(bytes)   
-mangalivre-app-57885677cc-g9fd8   1m           86Mi            
-mangalivre-app-57885677cc-ps6wn   1000m        93Mi            
-mangalivre-db-f76d86c6d-h4qth     1m           65Mi            
-mauriciobenjamin700@mauriciobenjamin700-Latitude-5300:~/projects/course/ufpi/minikube-test$ 
-```
-
-Quando a carga de CPU diminuir, o HPA reduzirá automaticamente o número de réplicas para o valor mínimo configurado (minReplicas).
-
-### Notebook B – Prometheus
-
-Instalação e Configuração do Prometheus com Helm + Monitoramento Remoto
-
-#### Pré-requisitos
-
-- Kubernetes cluster (Minikube, Kind, EKS, etc.)
-- `kubectl` instalado e configurado
-- `helm` instalado – [Instruções oficiais](https://helm.sh/docs/intro/install/)
-- Conectividade entre máquinas para monitoramento remoto
-
-#### Instalação do Prometheus com Helm
-
-##### 1. Adicionar o repositório do Prometheus
+O chart `prometheus-community/prometheus` já traz o **kube-state-metrics** (estado dos pods, restarts, réplicas do HPA) e coleta o **cAdvisor** do kubelet (uso de CPU por container). O [`prometheus-values.yaml`](./k8s/monitoring/prometheus-values.yaml) liga um volume persistente — sem ele o histórico some quando o Prometheus é parado no Experimento 4 — e desliga Alertmanager e Pushgateway para economizar recursos.
 
 ```bash
 helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
 helm repo update
+helm install prometheus prometheus-community/prometheus \
+  -n monitoring --create-namespace \
+  -f k8s/monitoring/prometheus-values.yaml
+kubectl rollout status deploy/prometheus-server -n monitoring
 ```
 
-##### 2. Criar um namespace para o Prometheus (opcional)
-
-```bash
-kubectl create namespace monitoring
-```
-
-##### 3. Instalar o Prometheus
-
-```bash
-helm install prometheus prometheus-community/prometheus   --namespace monitoring
-```
-
-##### 4. Verificar os pods
-
-```bash
-kubectl get pods -n monitoring
-```
-
-##### 5. Acessar a interface web do Prometheus localmente
+Em um terminal separado (deixe rodando):
 
 ```bash
 kubectl port-forward -n monitoring svc/prometheus-server 9090:80
 ```
 
-Acesse via navegador: [http://localhost:9090](http://localhost:9090)
+Acesse <http://localhost:9090>.
 
----
+### Consultas PromQL
 
-#### Monitorar Outros Clusters na Rede
+| O que mostra | Consulta |
+| --- | --- |
+| Pods ativos (Running) | `sum(kube_pod_status_phase{namespace="default",pod=~"mangalivre-app.*",phase="Running"})` |
+| Estado dos pods por fase | `sum by (phase) (kube_pod_status_phase{namespace="default",pod=~"mangalivre-app.*"}) > 0` |
+| Pods criados (nome e horário) | `max by (pod) (max_over_time(kube_pod_created{namespace="default",pod=~"mangalivre-app.*"}[15m]))` |
+| Uso de CPU por pod (cores) | `sum by (pod) (rate(container_cpu_usage_seconds_total{namespace="default",pod=~"mangalivre-app.*",container="mangalivre-app"}[1m]))` |
+| Reinicializações | `max by (pod) (kube_pod_container_status_restarts_total{namespace="default",container="mangalivre-app"})` |
+| Réplicas atuais do HPA | `kube_horizontalpodautoscaler_status_current_replicas{horizontalpodautoscaler="mangalivre-app-hpa"}` |
+| Réplicas desejadas pelo HPA | `kube_horizontalpodautoscaler_status_desired_replicas{horizontalpodautoscaler="mangalivre-app-hpa"}` |
+| Amostras coletadas (lacuna no Exp. 4) | `sum(count_over_time(up{job="kubernetes-pods",pod=~"mangalivre-app.*"}[30s]))` |
 
-##### 1. Crie o arquivo `values.yaml` com os scrapes remotos
+> 💡 Os gráficos do Prometheus mostram o horário em **UTC**; os scripts imprimem no horário local (UTC−3).
 
-```yaml
-server:
-  global:
-    scrape_interval: 15s
-  extraScrapeConfigs:
-    - job_name: 'remote-cluster-node1'
-      static_configs:
-        - targets: ['192.168.1.101:9100']
-    - job_name: 'remote-cluster-node2'
-      static_configs:
-        - targets: ['192.168.1.102:9100']
-```
+## Roteiro de demonstração (vídeo)
 
-##### 2. Instalar (ou atualizar) Prometheus com essa configuração
+Roteiro pensado para um vídeo de ~5 minutos. Cada script imprime timestamps e, no final, o **tempo medido** — é o número que vai para o relatório.
 
-###### Nova instalação
+### Antes de gravar
+
+1. Cluster, app e Prometheus no ar (seções 1 a 3).
+2. Deixe **quatro terminais** abertos:
+
+   | Terminal | Comando |
+   | --- | --- |
+   | T1 — port-forward | `kubectl port-forward -n monitoring svc/prometheus-server 9090:80` |
+   | T2 — observador | `kubectl get pods -l app=mangalivre-app -w` |
+   | T3 — HPA | `kubectl get hpa mangalivre-app-hpa -w` |
+   | T4 — experimentos | onde você roda os scripts |
+
+3. No navegador, abra o Prometheus (<http://localhost:9090>) com uma aba por consulta da tabela acima, intervalo de **15m**.
+4. Confirme o estado inicial — **2 pods Running, RESTARTS 0, HPA com 2 réplicas**:
+
+   ```bash
+   kubectl get pods,hpa
+   ```
+
+5. Espere 1–2 minutos parado antes de começar, para o HPA já ter métrica (`TARGETS` deixa de ser `<unknown>`).
+
+### Cena 0 — ambiente (≈30 s)
 
 ```bash
-helm install prometheus prometheus-community/prometheus   -f values.yaml   --namespace monitoring
+minikube status
+kubectl get nodes
+kubectl get deploy,svc,hpa
+kubectl describe deploy mangalivre-app | sed -n '/Limits/,/Readiness/p'
 ```
 
-###### Atualização
+Mostre a aplicação aberta no navegador (`minikube service mangalivre-app --url`).
+
+### Cena 1 — deleção de pod (≈1 min)
 
 ```bash
-helm upgrade prometheus prometheus-community/prometheus   -f values.yaml   --namespace monitoring
+./scripts/exp1-delete-pod.sh
 ```
 
-##### 3. Rodar Node Exporter nas máquinas remotas
+Narre: no T2 o pod antigo vira `Terminating` e o novo passa por `ContainerCreating` → `Running`. No Prometheus, a consulta **Pods criados** mostra o nome novo, e **Pods ativos** volta para 2. Tempo esperado: **~6 s** até o novo pod ficar `Ready`.
+
+Equivalente manual:
 
 ```bash
-docker run -d   --name node-exporter   -p 9100:9100   --restart=always   prom/node-exporter
+kubectl delete pod <nome-do-pod>
+kubectl get pods -l app=mangalivre-app
 ```
 
-#### Exemplos de Queries Prometheus para o Pod `mangalivre-app`
+### Cena 2 — falha no container (≈1 min)
 
-##### Uso de CPU
-
-```promql
-sum(rate(container_cpu_usage_seconds_total{pod="mangalivre-app"}[5m]))
+```bash
+./scripts/exp2-container-crash.sh
 ```
 
-```promql
-rate(container_cpu_usage_seconds_total{pod="mangalivre-app"}[5m])
+O script faz `POST /api/crash` de dentro do container; o Node sai com `exit code 1`, o kubelet reinicia **o container dentro do mesmo pod** (mesmo nome, mesmo UID) e a coluna `RESTARTS` vai de 0 para 1. O `kubectl describe` mostra `Last State: Terminated, Reason: Error, Exit Code: 1`. No Prometheus, **Reinicializações** sobe para 1. Tempo esperado: **~10 s**.
+
+Equivalente manual:
+
+```bash
+kubectl exec <nome-do-pod> -- curl -s -X POST localhost:3000/api/crash
+kubectl get pods -l app=mangalivre-app
+kubectl describe pod <nome-do-pod> | grep -A4 "Last State"
 ```
 
-##### Uso de Memória
+> ⚠️ `kubectl exec <pod> -- kill -9 1` **não** derruba o container (testado: o comando sai com 0 e o pod segue `Running`). O PID 1 do container é o `npm run start`, e o kernel descarta `SIGKILL` enviado ao PID 1 de dentro do próprio PID namespace. Por isso a falha é provocada pela rota `/api/crash`, que faz o próprio Node sair com `exit 1`.
 
-```promql
-container_memory_usage_bytes{pod="mangalivre-app"}
+### Cena 3 — sobrecarga de CPU e HPA (≈5 min de execução; corte no vídeo)
+
+```bash
+./scripts/exp3-cpu-load.sh
 ```
 
-```promql
-container_memory_rss{pod="mangalivre-app"}
+O script cria o pod [`load-generator`](./k8s/load-generator.yaml) (8 loops de `wget` em `/api/load`), acompanha o HPA, espera as 5 réplicas ficarem Running, segura a carga mais 60 s, remove o gerador e espera voltar a 2 réplicas.
+
+O que mostrar:
+
+- T3: `TARGETS` sobe de ~1% para ~200%/50% e `REPLICAS` vai de 2 para **5** (o `maxReplicas`).
+- `kubectl top pods`: cada pod perto de `500m`, o `limit`.
+- Prometheus: **Uso de CPU por pod** com as 5 séries, e **Réplicas do HPA** em degrau 2 → 5 → 2.
+- O resultado final imprime os três tempos (carga → CPU acima do alvo, CPU acima do alvo → scale-up, fim da carga → mínimo).
+
+> 💡 O `metrics-server` coleta a cada ~60 s, então a maior parte do tempo até o scale-up é **atraso de métrica**, não do HPA. A reação do HPA em si (CPU acima do alvo → novas réplicas) fica em ~15–20 s. O scale-down respeita `stabilizationWindowSeconds: 60` do HPA, mais a janela do `metrics-server`.
+
+Para o vídeo, grave o começo, corte a espera e retome no scale-up e no scale-down.
+
+### Cena 4 — interrupção do monitoramento (≈1 min 30 s)
+
+```bash
+./scripts/exp4-prometheus-down.sh
 ```
 
-##### Disco
+O script escala o `prometheus-server` para 0, faz uma requisição à aplicação a cada 5 s por 90 s (todas devem dar `HTTP 200` enquanto o Prometheus dá `000`) e escala o Prometheus de volta para 1.
 
-```promql
-rate(container_fs_writes_bytes_total{pod="mangalivre-app"}[5m])
+Depois que o script terminar:
+
+1. **Reinicie o port-forward no T1** (ele cai junto com o pod).
+2. Recarregue a consulta **Amostras coletadas** no Prometheus com intervalo de 15m: aparece a **lacuna** sem amostras no período da queda, e o histórico anterior continua lá (volume persistente).
+
+> 💡 Não use `up` puro para mostrar a lacuna: numa consulta de intervalo o Prometheus repete a última amostra por até 5 min (*lookback delta*), então uma queda de ~90 s some do gráfico. O `count_over_time(...[30s])` conta as amostras realmente gravadas em cada janela e zera onde não houve coleta.
+
+Equivalente manual:
+
+```bash
+kubectl scale deploy prometheus-server -n monitoring --replicas=0
+curl -s "$(minikube service mangalivre-app --url)/api/health"
+kubectl scale deploy prometheus-server -n monitoring --replicas=1
 ```
 
-```promql
-rate(container_fs_reads_bytes_total{pod="mangalivre-app"}[5m])
+### Depois de gravar
+
+```bash
+kubectl delete pod load-generator --ignore-not-found
+minikube stop
 ```
 
-##### Rede
+## Estrutura
 
-```promql
-rate(container_network_receive_bytes_total{pod="mangalivre-app"}[5m])
+```text
+.
+├── docs/
+│   ├── relatorio.md          # Relatório da atividade (exportar para PDF)
+│   ├── images/               # Prints usados no relatório
+│   └── evidencias/           # Saída real dos scripts (exp1..exp4.log)
+├── k8s/
+│   ├── mangalivre-app-deployment.yaml
+│   ├── mangalivre-app-hpa.yaml
+│   ├── mangalivre-db-deployment.yaml
+│   ├── load-generator.yaml
+│   └── monitoring/prometheus-values.yaml
+├── mangalivre/               # Aplicação Next.js + Dockerfile do Postgres
+└── scripts/                  # Experimentos 1 a 4
 ```
 
-```promql
-rate(container_network_transmit_bytes_total{pod="mangalivre-app"}[5m])
-```
-
-##### Status do Pod
-
-```promql
-kube_pod_status_phase{pod="mangalivre-app", phase="Running"}
-```
-
-##### Requisições HTTP (se o app expõe essa métrica)
-
-```promql
-rate(http_requests_total{pod="mangalivre-app"}[1m])
-```
-
-#### Consultas com Regex
-
-##### Todas as métricas com o pod exato
-
-```promql
-{pod="mangalivre-app"}
-```
-
-##### Todas as métricas que começam com `mangalivre` (regex)
-
-```promql
-{pod=~"mangalivre.*"}
-```
-
-##### Com namespace específico
-
-```promql
-{pod=~"mangalivre.*", namespace="default"}
-```
-
-## Conclusão
-
-Este foi o nosso trabalho sobre Tolerância a Falhas e Monitoramento com Kubernetes + Prometheus. Em caso de dúvidas podem abrir uma issue [neste projeto](https://github.com/mauriciobenjamin700/minikube-test) ou entrar em contato com algum dos membros autores a baixo:
+## Autores
 
 - [Mauricio Benjamin](https://github.com/mauriciobenjamin700)
 - [Clistenes Rogder](https://github.com/clistenesrodger)
-- [Pedro Vital](https://github.com/pedroVital13)

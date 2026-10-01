@@ -2,6 +2,8 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: mangalivre-app
+  labels:
+    app: mangalivre-app
 spec:
   replicas: 2
   selector:
@@ -11,6 +13,10 @@ spec:
     metadata:
       labels:
         app: mangalivre-app
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "3000"
+        prometheus.io/path: "/api/metrics"
     spec:
       containers:
         - name: mangalivre-app
@@ -18,24 +24,41 @@ spec:
           imagePullPolicy: Never
           ports:
             - containerPort: 3000
+          env:
+            - name: DB_USER
+              value: "mangalivre"
+            - name: DB_PASSWORD
+              value: "mangalivre"
+            - name: DB_HOST
+              value: "mangalivre-db"
+            - name: DB_PORT
+              value: "5432"
+            - name: DB_NAME
+              value: "mangalivre"
+            - name: ENABLE_CRASH_ENDPOINT
+              value: "true"
           livenessProbe:
             httpGet:
-              path: /
+              path: /api/health
               port: 3000
-            initialDelaySeconds: 5
-            periodSeconds: 10
-
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 5
+            failureThreshold: 3
           readinessProbe:
             httpGet:
-              path: /
+              path: /api/health
               port: 3000
             initialDelaySeconds: 5
-            periodSeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 5
           resources:
             requests:
-              cpu: "200m" # 200 milicores (0.2 CPU)
+              cpu: "200m"
+              memory: "128Mi"
             limits:
-              cpu: "500m" # 500 milicores (0.5 CPU)
+              cpu: "500m"
+              memory: "512Mi"
 ---
 apiVersion: v1
 kind: Service

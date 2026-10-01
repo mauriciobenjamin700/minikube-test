@@ -69,3 +69,22 @@ table, th, td {
     padding: 8px;
     /* Adiciona espaçamento interno */
 }
+/* Imagens do relatório: centralizadas e com altura limitada para caber em 4-6 páginas */
+img {
+    display: block;
+    margin: 6px auto 2px auto;
+    max-width: 100%;
+    max-height: 6.2cm;
+}
+
+/* Legendas das figuras (texto alternativo exibido logo abaixo) */
+.caption {
+    text-align: center;
+    font-size: 11px;
+    font-style: italic;
+    margin: 0 0 10px 0;
+}
+
+pre, code {
+    font-size: 10px;
+}

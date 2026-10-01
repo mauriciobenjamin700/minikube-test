@@ -1,0 +1,131 @@
+
+[1;36m[10:23:14.532] Estado inicial[0m
+NAME                 REFERENCE                   TARGETS       MINPODS   MAXPODS   REPLICAS   AGE
+mangalivre-app-hpa   Deployment/mangalivre-app   cpu: 1%/50%   2         5         2          34m
+NAME                              CPU(cores)   MEMORY(bytes)   
+mangalivre-app-584bcdb656-2nmk7   2m           96Mi            
+mangalivre-app-584bcdb656-llcpr   2m           100Mi           
+
+[1;36m[10:23:14.823] Iniciando gerador de carga (8 loops HTTP em /api/load)[0m
+pod/load-generator created
+[10:23:14.991] HPA TARGETS=cpu: 1%/50% REPLICAS=2 | Deployment spec.replicas=2
+[10:23:17.467] HPA TARGETS=cpu: 1%/50% REPLICAS=2 | Deployment spec.replicas=2
+[10:23:19.895] HPA TARGETS=cpu: 1%/50% REPLICAS=2 | Deployment spec.replicas=2
+[10:23:22.259] HPA TARGETS=cpu: 1%/50% REPLICAS=2 | Deployment spec.replicas=2
+[10:23:27.680] HPA TARGETS=cpu: 1%/50% REPLICAS=2 | Deployment spec.replicas=2
+[10:23:30.367] HPA TARGETS=cpu: 1%/50% REPLICAS=2 | Deployment spec.replicas=2
+[10:23:32.909] HPA TARGETS=cpu: 1%/50% REPLICAS=2 | Deployment spec.replicas=2
+[10:23:35.776] HPA TARGETS=cpu: 1%/50% REPLICAS=2 | Deployment spec.replicas=2
+[10:23:38.480] HPA TARGETS=cpu: 1%/50% REPLICAS=2 | Deployment spec.replicas=2
+[10:23:41.021] HPA TARGETS=cpu: 1%/50% REPLICAS=2 | Deployment spec.replicas=2
+[10:23:43.382] HPA TARGETS=cpu: 46%/50% REPLICAS=2 | Deployment spec.replicas=2
+[10:23:45.626] HPA TARGETS=cpu: 46%/50% REPLICAS=2 | Deployment spec.replicas=2
+[10:23:48.112] HPA TARGETS=cpu: 46%/50% REPLICAS=2 | Deployment spec.replicas=2
+[10:23:50.416] HPA TARGETS=cpu: 46%/50% REPLICAS=2 | Deployment spec.replicas=2
+[10:23:52.699] HPA TARGETS=cpu: 46%/50% REPLICAS=2 | Deployment spec.replicas=2
+[10:23:54.967] HPA TARGETS=cpu: 46%/50% REPLICAS=2 | Deployment spec.replicas=2
+[10:23:57.238] HPA TARGETS=cpu: 46%/50% REPLICAS=2 | Deployment spec.replicas=2
+[10:24:02.423] HPA TARGETS=cpu: 46%/50% REPLICAS=2 | Deployment spec.replicas=2
+[10:24:04.706] HPA TARGETS=cpu: 46%/50% REPLICAS=2 | Deployment spec.replicas=2
+[10:24:06.992] HPA TARGETS=cpu: 46%/50% REPLICAS=2 | Deployment spec.replicas=2
+[10:24:09.262] HPA TARGETS=cpu: 46%/50% REPLICAS=2 | Deployment spec.replicas=2
+[10:24:11.516] HPA TARGETS=cpu: 46%/50% REPLICAS=2 | Deployment spec.replicas=2
+[10:24:13.764] HPA TARGETS=cpu: 46%/50% REPLICAS=2 | Deployment spec.replicas=2
+[10:24:16.030] HPA TARGETS=cpu: 46%/50% REPLICAS=2 | Deployment spec.replicas=2
+[10:24:18.265] HPA TARGETS=cpu: 46%/50% REPLICAS=2 | Deployment spec.replicas=2
+[10:24:20.576] HPA TARGETS=cpu: 46%/50% REPLICAS=2 | Deployment spec.replicas=2
+[10:24:22.822] HPA TARGETS=cpu: 46%/50% REPLICAS=2 | Deployment spec.replicas=2
+[10:24:25.425] HPA TARGETS=cpu: 46%/50% REPLICAS=2 | Deployment spec.replicas=2
+[10:24:27.668] HPA TARGETS=cpu: 46%/50% REPLICAS=2 | Deployment spec.replicas=2
+[10:24:29.957] HPA TARGETS=cpu: 46%/50% REPLICAS=2 | Deployment spec.replicas=2
+[10:24:32.201] HPA TARGETS=cpu: 46%/50% REPLICAS=2 | Deployment spec.replicas=2
+[10:24:37.377] HPA TARGETS=cpu: 46%/50% REPLICAS=2 | Deployment spec.replicas=2
+[10:24:39.625] HPA TARGETS=cpu: 46%/50% REPLICAS=2 | Deployment spec.replicas=2
+[10:24:41.889] HPA TARGETS=cpu: 46%/50% REPLICAS=2 | Deployment spec.replicas=2
+[10:24:44.177] HPA TARGETS=cpu: 46%/50% REPLICAS=2 | Deployment spec.replicas=2
+[10:24:46.413] HPA TARGETS=cpu: 46%/50% REPLICAS=2 | Deployment spec.replicas=2
+[10:24:48.670] HPA TARGETS=cpu: 227%/50% REPLICAS=2 | Deployment spec.replicas=5
+    -> CPU acima do alvo: 227% > 50% (+94.01s)
+    -> primeiro scale-up (+94.01s)
+    -> máximo de 5 réplicas atingido (+94.01s)
+Waiting for deployment "mangalivre-app" rollout to finish: 2 of 5 updated replicas are available...
+Waiting for deployment "mangalivre-app" rollout to finish: 3 of 5 updated replicas are available...
+Waiting for deployment "mangalivre-app" rollout to finish: 4 of 5 updated replicas are available...
+deployment "mangalivre-app" successfully rolled out
+    -> 5 réplicas Running (+99.71s)
+NAME                              READY   STATUS    RESTARTS   AGE
+mangalivre-app-584bcdb656-2nmk7   1/1     Running   0          4m12s
+mangalivre-app-584bcdb656-llcpr   1/1     Running   0          4m6s
+mangalivre-app-584bcdb656-p662l   1/1     Running   0          6s
+mangalivre-app-584bcdb656-tggjm   1/1     Running   0          6s
+mangalivre-app-584bcdb656-vlbfx   1/1     Running   0          6s
+
+[1;36m[10:24:54.773] Mantendo a carga por mais 60 s com o máximo de réplicas[0m
+NAME                 REFERENCE                   TARGETS         MINPODS   MAXPODS   REPLICAS   AGE
+mangalivre-app-hpa   Deployment/mangalivre-app   cpu: 207%/50%   2         5         5          37m
+NAME                              CPU(cores)   MEMORY(bytes)   
+mangalivre-app-584bcdb656-2nmk7   420m         114Mi           
+mangalivre-app-584bcdb656-llcpr   410m         114Mi           
+mangalivre-app-584bcdb656-p662l   365m         105Mi           
+mangalivre-app-584bcdb656-tggjm   343m         105Mi           
+mangalivre-app-584bcdb656-vlbfx   323m         103Mi           
+
+[1;36m[10:26:00.787] Retirando a carga[0m
+pod "load-generator" deleted from default namespace
+[10:26:00.856] HPA TARGETS=cpu: 207%/50% REPLICAS=5 | Deployment spec.replicas=5
+[10:26:06.046] HPA TARGETS=cpu: 207%/50% REPLICAS=5 | Deployment spec.replicas=5
+[10:26:11.237] HPA TARGETS=cpu: 207%/50% REPLICAS=5 | Deployment spec.replicas=5
+[10:26:16.416] HPA TARGETS=cpu: 207%/50% REPLICAS=5 | Deployment spec.replicas=5
+[10:26:24.548] HPA TARGETS=cpu: 207%/50% REPLICAS=5 | Deployment spec.replicas=5
+[10:26:29.728] HPA TARGETS=cpu: 207%/50% REPLICAS=5 | Deployment spec.replicas=5
+[10:26:34.909] HPA TARGETS=cpu: 207%/50% REPLICAS=5 | Deployment spec.replicas=5
+[10:26:40.120] HPA TARGETS=cpu: 207%/50% REPLICAS=5 | Deployment spec.replicas=5
+[10:26:45.300] HPA TARGETS=cpu: 207%/50% REPLICAS=5 | Deployment spec.replicas=5
+[10:26:50.477] HPA TARGETS=cpu: 207%/50% REPLICAS=5 | Deployment spec.replicas=5
+[10:26:58.646] HPA TARGETS=cpu: 207%/50% REPLICAS=5 | Deployment spec.replicas=5
+[10:27:03.825] HPA TARGETS=cpu: 147%/50% REPLICAS=5 | Deployment spec.replicas=5
+[10:27:09.001] HPA TARGETS=cpu: 147%/50% REPLICAS=5 | Deployment spec.replicas=5
+[10:27:14.180] HPA TARGETS=cpu: 147%/50% REPLICAS=5 | Deployment spec.replicas=5
+[10:27:19.361] HPA TARGETS=cpu: 147%/50% REPLICAS=5 | Deployment spec.replicas=5
+[10:27:24.542] HPA TARGETS=cpu: 147%/50% REPLICAS=5 | Deployment spec.replicas=5
+[10:27:32.649] HPA TARGETS=cpu: 147%/50% REPLICAS=5 | Deployment spec.replicas=5
+[10:27:37.912] HPA TARGETS=cpu: 147%/50% REPLICAS=5 | Deployment spec.replicas=5
+[10:27:43.087] HPA TARGETS=cpu: 147%/50% REPLICAS=5 | Deployment spec.replicas=5
+[10:27:48.263] HPA TARGETS=cpu: 147%/50% REPLICAS=5 | Deployment spec.replicas=5
+[10:27:53.515] HPA TARGETS=cpu: 147%/50% REPLICAS=5 | Deployment spec.replicas=5
+[10:27:58.688] HPA TARGETS=cpu: 147%/50% REPLICAS=5 | Deployment spec.replicas=5
+[10:28:03.872] HPA TARGETS=cpu: 1%/50% REPLICAS=5 | Deployment spec.replicas=5
+[10:28:11.978] HPA TARGETS=cpu: 1%/50% REPLICAS=5 | Deployment spec.replicas=5
+[10:28:17.157] HPA TARGETS=cpu: 1%/50% REPLICAS=5 | Deployment spec.replicas=5
+[10:28:22.359] HPA TARGETS=cpu: 1%/50% REPLICAS=5 | Deployment spec.replicas=5
+[10:28:27.540] HPA TARGETS=cpu: 1%/50% REPLICAS=5 | Deployment spec.replicas=5
+[10:28:32.720] HPA TARGETS=cpu: 1%/50% REPLICAS=5 | Deployment spec.replicas=5
+[10:28:37.893] HPA TARGETS=cpu: 1%/50% REPLICAS=5 | Deployment spec.replicas=5
+[10:28:46.009] HPA TARGETS=cpu: 1%/50% REPLICAS=5 | Deployment spec.replicas=5
+[10:28:51.219] HPA TARGETS=cpu: 1%/50% REPLICAS=5 | Deployment spec.replicas=5
+[10:28:56.451] HPA TARGETS=cpu: 1%/50% REPLICAS=5 | Deployment spec.replicas=2
+NAME                              READY   STATUS    RESTARTS   AGE
+mangalivre-app-584bcdb656-2nmk7   1/1     Running   0          8m14s
+mangalivre-app-584bcdb656-llcpr   1/1     Running   0          8m8s
+
+[1;36m[10:28:56.682] Eventos do HPA[0m
+Events:
+  Type     Reason                        Age                  From                       Message
+  ----     ------                        ----                 ----                       -------
+  Warning  FailedGetResourceMetric       40m                  horizontal-pod-autoscaler  failed to get cpu utilization: unable to get metrics for resource cpu: unable to fetch metrics from resource metrics API: the server is currently unable to handle the request (get pods.metrics.k8s.io)
+  Warning  FailedComputeMetricsReplicas  40m                  horizontal-pod-autoscaler  invalid metrics (1 invalid out of 1), first error is: failed to get cpu resource metric value: failed to get cpu utilization: unable to get metrics for resource cpu: unable to fetch metrics from resource metrics API: the server is currently unable to handle the request (get pods.metrics.k8s.io)
+  Normal   SuccessfulRescale             9m53s                horizontal-pod-autoscaler  New size: 4; reason: All metrics below target
+  Warning  FailedGetResourceMetric       7m41s (x6 over 40m)  horizontal-pod-autoscaler  failed to get cpu utilization: unable to get metrics for resource cpu: no metrics returned from resource metrics API
+  Warning  FailedComputeMetricsReplicas  7m41s (x6 over 40m)  horizontal-pod-autoscaler  invalid metrics (1 invalid out of 1), first error is: failed to get cpu resource metric value: failed to get cpu utilization: unable to get metrics for resource cpu: no metrics returned from resource metrics API
+  Warning  FailedGetResourceMetric       6m35s (x8 over 39m)  horizontal-pod-autoscaler  failed to get cpu utilization: did not receive metrics for targeted pods (pods might be unready)
+  Warning  FailedComputeMetricsReplicas  6m35s (x8 over 39m)  horizontal-pod-autoscaler  invalid metrics (1 invalid out of 1), first error is: failed to get cpu resource metric value: failed to get cpu utilization: did not receive metrics for targeted pods (pods might be unready)
+  Normal   SuccessfulRescale             4m8s (x4 over 36m)   horizontal-pod-autoscaler  New size: 5; reason: cpu resource utilization (percentage of request) above target
+  Normal   SuccessfulRescale             3s (x4 over 32m)     horizontal-pod-autoscaler  New size: 2; reason: All metrics below target
+
+[1;36m[10:28:56.746] Resultado[0m
+Réplicas: mín=2 máx=5 pico observado=5
+Início da carga -> CPU acima do alvo: 94.01 s
+CPU acima do alvo -> scale-up:       0.00 s
+Início da carga -> primeiro scale-up: 94.01 s
+Início da carga -> máximo réplicas:  94.01 s
+Fim da carga -> volta ao mínimo:     175.77 s

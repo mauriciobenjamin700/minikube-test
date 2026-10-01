@@ -1,0 +1,35 @@
+
+[1;36m[10:02:42.787] Estado inicial (pod alvo: mangalivre-app-566f97878b-nzcjh, RESTARTS=0)[0m
+NAME                              READY   STATUS    RESTARTS   AGE
+mangalivre-app-566f97878b-nzcjh   1/1     Running   0          14m
+mangalivre-app-566f97878b-qs552   1/1     Running   0          73s
+
+[1;36m[10:02:42.862] Provocando falha no processo: POST /api/crash -> process.exit(1)[0m
+{"status":"crashing"}
+
+[1;36m[10:02:42.957] Aguardando o kubelet reiniciar o container[0m
+[10:02:43.698] Container fora do ar (ready=false, RESTARTS=1)
+NAME                              READY   STATUS    RESTARTS     AGE
+mangalivre-app-566f97878b-nzcjh   1/1     Running   1 (6s ago)   14m
+mangalivre-app-566f97878b-qs552   1/1     Running   0            80s
+
+[1;36m[10:02:49.823] Último estado do container (kubectl describe)[0m
+    Last State:     Terminated
+      Reason:       Error
+      Exit Code:    1
+      Started:      Thu, 01 Oct 2026 09:48:35 -0300
+      Finished:     Thu, 01 Oct 2026 10:02:43 -0300
+    Ready:          True
+
+[1;36m[10:02:49.920] Eventos do pod[0m
+LAST SEEN   TYPE      REASON      OBJECT                                MESSAGE
+14m         Normal    Scheduled   pod/mangalivre-app-566f97878b-nzcjh   Successfully assigned default/mangalivre-app-566f97878b-nzcjh to minikube
+10m         Warning   Unhealthy   pod/mangalivre-app-566f97878b-nzcjh   Liveness probe failed: Get "http://10.244.0.8:3000/api/health": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
+7s          Normal    Pulled      pod/mangalivre-app-566f97878b-nzcjh   Container image "mangalivre-app:latest" already present on machine and can be accessed by the pod
+7s          Normal    Created     pod/mangalivre-app-566f97878b-nzcjh   Container created
+7s          Normal    Started     pod/mangalivre-app-566f97878b-nzcjh   Container started
+
+[1;36m[10:02:50.109] Resultado[0m
+Pod:                     mangalivre-app-566f97878b-nzcjh (mesmo nome e UID: sim)
+RESTARTS:                0 -> 1
+Tempo de recuperação:    6.87 s

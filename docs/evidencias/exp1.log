@@ -1,0 +1,24 @@
+
+[1;36m[10:01:29.081] Estado inicial[0m
+NAME                              READY   STATUS    RESTARTS      AGE   IP           NODE       NOMINATED NODE   READINESS GATES
+mangalivre-app-566f97878b-gdwbq   1/1     Running   1 (10m ago)   11m   10.244.0.9   minikube   <none>           <none>
+mangalivre-app-566f97878b-nzcjh   1/1     Running   0             12m   10.244.0.8   minikube   <none>           <none>
+
+[1;36m[10:01:29.330] Deletando o pod mangalivre-app-566f97878b-gdwbq[0m
+pod "mangalivre-app-566f97878b-gdwbq" deleted from default namespace
+NAME                              READY   STATUS              RESTARTS      AGE
+mangalivre-app-566f97878b-gdwbq   1/1     Terminating         1 (10m ago)   11m
+mangalivre-app-566f97878b-nzcjh   1/1     Running             0             12m
+mangalivre-app-566f97878b-qs552   0/1     ContainerCreating   0             0s
+
+[1;36m[10:01:29.503] Aguardando o ReplicaSet recriar o pod e ele ficar Ready[0m
+[10:01:29.591] Novo pod criado: mangalivre-app-566f97878b-qs552 (+0.26s)
+NAME                              READY   STATUS    RESTARTS   AGE   IP            NODE       NOMINATED NODE   READINESS GATES
+mangalivre-app-566f97878b-nzcjh   1/1     Running   0          13m   10.244.0.8    minikube   <none>           <none>
+mangalivre-app-566f97878b-qs552   1/1     Running   0          7s    10.244.0.16   minikube   <none>           <none>
+
+[1;36m[10:01:36.720] Resultado[0m
+Pod removido:              mangalivre-app-566f97878b-gdwbq
+Pod substituto:            mangalivre-app-566f97878b-qs552
+Tempo até o novo pod existir:   0.26 s
+Tempo de recuperação (Ready):   7.31 s

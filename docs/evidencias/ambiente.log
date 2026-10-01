@@ -1,0 +1,25 @@
+$ minikube version --short && kubectl version && helm version --short && docker --version
+v1.39.0
+Client Version: v1.37.1
+Kustomize Version: v5.8.1
+Server Version: v1.37.0
+v3.16.4+g7877b45
+Docker version 29.6.1, build 8900f1d
+
+$ minikube status
+minikube
+type: Control Plane
+host: Running
+kubelet: Running
+apiserver: Running
+kubeconfig: Configured
+
+$ kubectl get nodes -o wide
+NAME       STATUS   ROLES           AGE   VERSION   INTERNAL-IP    EXTERNAL-IP   OS-IMAGE                         KERNEL-VERSION                               CONTAINER-RUNTIME
+minikube   Ready    control-plane   16m   v1.37.0   192.168.49.2   <none>        Debian GNU/Linux 12 (bookworm)   5.15.167.4-microsoft-standard-WSL2 (amd64)   containerd://2.3.4
+
+$ kubectl get pods -n monitoring
+NAME                                             READY   STATUS    RESTARTS   AGE
+prometheus-kube-state-metrics-54dc6d7965-684zm   1/1     Running   0          16m
+prometheus-prometheus-node-exporter-vg2pk        1/1     Running   0          16m
+prometheus-server-5c5f57c87c-zhbrc               2/2     Running   0          2m28s

@@ -1,0 +1,47 @@
+
+[1;36m[10:10:06.198] Estado inicial do monitoramento (app em http://192.168.49.2:32623)[0m
+NAME                                             READY   STATUS    RESTARTS   AGE
+prometheus-kube-state-metrics-54dc6d7965-684zm   1/1     Running   0          23m
+prometheus-prometheus-node-exporter-vg2pk        1/1     Running   0          23m
+prometheus-server-5c5f57c87c-zhbrc               2/2     Running   0          9m23s
+Prometheus /-/ready: HTTP 200
+
+[1;36m[10:10:06.288] Interrompendo o Prometheus (replicas=0)[0m
+deployment.apps/prometheus-server scaled
+pod/prometheus-server-5c5f57c87c-zhbrc condition met
+NAME                                             READY   STATUS    RESTARTS   AGE
+prometheus-kube-state-metrics-54dc6d7965-684zm   1/1     Running   0          23m
+prometheus-prometheus-node-exporter-vg2pk        1/1     Running   0          23m
+
+[1;36m[10:10:08.032] Aplicação durante a interrupção (90 s)[0m
+[10:10:08.039] app /api/health: HTTP 200 | Prometheus: HTTP 000
+[10:10:13.053] app /api/health: HTTP 200 | Prometheus: HTTP 000
+[10:10:18.064] app /api/health: HTTP 200 | Prometheus: HTTP 000
+[10:10:23.076] app /api/health: HTTP 200 | Prometheus: HTTP 000
+[10:10:28.087] app /api/health: HTTP 200 | Prometheus: HTTP 000
+[10:10:36.033] app /api/health: HTTP 200 | Prometheus: HTTP 000
+[10:10:41.044] app /api/health: HTTP 200 | Prometheus: HTTP 000
+[10:10:46.055] app /api/health: HTTP 200 | Prometheus: HTTP 000
+[10:10:51.066] app /api/health: HTTP 200 | Prometheus: HTTP 000
+[10:10:56.079] app /api/health: HTTP 200 | Prometheus: HTTP 000
+[10:11:01.090] app /api/health: HTTP 200 | Prometheus: HTTP 000
+[10:11:09.034] app /api/health: HTTP 200 | Prometheus: HTTP 000
+[10:11:14.046] app /api/health: HTTP 200 | Prometheus: HTTP 000
+[10:11:19.059] app /api/health: HTTP 200 | Prometheus: HTTP 000
+[10:11:25.962] app /api/health: HTTP 200 | Prometheus: HTTP 000
+[10:11:32.865] app /api/health: HTTP 200 | Prometheus: HTTP 000
+NAME                              READY   STATUS    RESTARTS        AGE
+mangalivre-app-566f97878b-nzcjh   1/1     Running   1 (8m59s ago)   23m
+mangalivre-app-566f97878b-qs552   1/1     Running   0               10m
+
+[1;36m[10:11:42.760] Reiniciando o Prometheus (replicas=1)[0m
+deployment.apps/prometheus-server scaled
+Waiting for deployment "prometheus-server" rollout to finish: 0 of 1 updated replicas are available...
+deployment "prometheus-server" successfully rolled out
+Lembrete: o port-forward cai junto com o pod. Rode de novo em outro terminal:
+  kubectl port-forward -n monitoring svc/prometheus-server 9090:80
+
+[1;36m[10:12:14.912] Resultado[0m
+Requisições à aplicação durante a queda: 16 OK / 0 falhas
+Duração da interrupção do monitoramento: 96.45 s
+Tempo para o Prometheus voltar (Ready):  32.09 s

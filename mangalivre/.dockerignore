@@ -1,5 +1,4 @@
 database
 .next
 node_modules
-.gitignore
-README.md
+.env*

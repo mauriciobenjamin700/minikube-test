@@ -1,0 +1,35 @@
+$ kubectl get deploy,svc,hpa
+NAME                             READY   UP-TO-DATE   AVAILABLE   AGE
+deployment.apps/mangalivre-app   2/2     2            2           32m
+deployment.apps/mangalivre-db    1/1     1            1           32m
+
+NAME                     TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)          AGE
+service/kubernetes       ClusterIP   10.96.0.1        <none>        443/TCP          34m
+service/mangalivre-app   NodePort    10.100.116.152   <none>        3000:32623/TCP   32m
+service/mangalivre-db    ClusterIP   10.101.209.123   <none>        5432/TCP         32m
+
+NAME                                                     REFERENCE                   TARGETS       MINPODS   MAXPODS   REPLICAS   AGE
+horizontalpodautoscaler.autoscaling/mangalivre-app-hpa   Deployment/mangalivre-app   cpu: 0%/50%   2         5         2          32m
+
+$ kubectl describe deploy mangalivre-app | sed -n "/Containers:/,/Mounts:/p"
+  Containers:
+   mangalivre-app:
+    Image:      mangalivre-app:latest
+    Port:       3000/TCP
+    Host Port:  0/TCP
+    Limits:
+      cpu:     500m
+      memory:  512Mi
+    Requests:
+      cpu:      200m
+      memory:   128Mi
+    Liveness:   http-get http://:3000/api/health delay=10s timeout=5s period=5s successThreshold=1 failureThreshold=3
+    Readiness:  http-get http://:3000/api/health delay=5s timeout=5s period=5s successThreshold=1 failureThreshold=3
+    Environment:
+      DB_USER:                mangalivre
+      DB_PASSWORD:            mangalivre
+      DB_HOST:                mangalivre-db
+      DB_PORT:                5432
+      DB_NAME:                mangalivre
+      ENABLE_CRASH_ENDPOINT:  true
+    Mounts:                   <none>

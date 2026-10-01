@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
         - name: mangalivre-db
-          image: mangalivre-db
+          image: mangalivre-db:latest
           imagePullPolicy: Never
           env:
             - name: POSTGRES_USER

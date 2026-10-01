@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: load-generator
+  labels:
+    app: load-generator
+spec:
+  restartPolicy: Never
+  containers:
+    - name: load-generator
+      image: busybox:1.36
+      command:
+        - /bin/sh
+        - -c
+        - |
+          echo "Gerando carga em http://mangalivre-app:3000/api/load"
+          for i in 1 2 3 4 5 6 7 8; do
+            while true; do wget -q -O /dev/null "http://mangalivre-app:3000/api/load?ms=300"; done &
+          done
+          wait
